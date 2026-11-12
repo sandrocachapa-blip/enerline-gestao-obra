@@ -1,0 +1,1065 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<script src="shim.js"></script>
+
+<title>ENERLINE Gestão de Obra</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+/* Layout: barra lateral carvão com o logótipo; área de trabalho clara, uma secção de cada vez; no telemóvel a barra passa para o topo. */
+:root{
+  --bg:#f2f4ee; --surface:#ffffff; --ink:#2a2f32; --muted:#667077; --line:#dbe0d5;
+  --brand:#61a60e; --brand-ink:#3d6f06; --on-brand:#ffffff; --brand-soft:#e6f1d6;
+  --side:#32373b; --side-ink:#e8ece4; --side-muted:#a3aba4;
+  --ok:#2e7d32; --ok-bg:#e1f1df; --warn:#9a6200; --warn-bg:#fbedcf; --bad:#b3261e; --bad-bg:#fbe1de; --neu-bg:#e8ebe6;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --body:"Barlow","Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#1a1d1f; --surface:#24282b; --ink:#e7eae4; --muted:#9aa39d; --line:#373d41;
+  --brand:#7cc427; --brand-ink:#a2dd58; --on-brand:#10200a; --brand-soft:#2a3a1a;
+  --side:#131516; --side-ink:#e8ece4; --side-muted:#8d958f;
+  --ok:#8fd694; --ok-bg:#1f3a22; --warn:#f0c064; --warn-bg:#40320f; --bad:#ff9d94; --bad-bg:#4a1f1b; --neu-bg:#33383b;
+  color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#1a1d1f; --surface:#24282b; --ink:#e7eae4; --muted:#9aa39d; --line:#373d41;
+  --brand:#7cc427; --brand-ink:#a2dd58; --on-brand:#10200a; --brand-soft:#2a3a1a;
+  --side:#131516; --side-ink:#e8ece4; --side-muted:#8d958f;
+  --ok:#8fd694; --ok-bg:#1f3a22; --warn:#f0c064; --warn-bg:#40320f; --bad:#ff9d94; --bad-bg:#4a1f1b; --neu-bg:#33383b;
+  color-scheme:dark }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--body);font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.app{display:grid;grid-template-columns:285px minmax(0,1fr);min-height:100%}
+.side{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;gap:20px;padding:18px 14px}
+.logo{background:#fff;border-radius:6px;padding:8px 10px;display:block}
+.logo img{display:block;width:100%;height:auto}
+.side small{color:var(--side-muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+nav{display:flex;flex-direction:column;gap:2px}
+nav a{color:var(--side-ink);text-decoration:none;padding:6px 12px 6px 22px;border-radius:5px;font:500 18px/1.2 var(--display);letter-spacing:.02em;text-transform:uppercase}
+nav a:hover{background:rgba(255,255,255,.07)}
+nav a.on{background:var(--brand);color:var(--on-brand);font-weight:700}
+.sync{margin-top:auto;font-size:12px;color:var(--side-muted)}
+main{padding-block:22px 60px;padding-inline:24px;min-width:0;display:flex;flex-direction:column;gap:18px}
+h1{font:700 32px/1.05 var(--display);text-transform:uppercase;letter-spacing:.02em;margin:0;text-wrap:balance}
+h2{font:600 20px/1.1 var(--display);text-transform:uppercase;letter-spacing:.04em;margin:0}
+.vh{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sub{color:var(--muted);margin:0}
+.btn{background:var(--brand);color:var(--on-brand);border:1px solid var(--brand);border-radius:5px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--muted)}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.btn.armed,.chip.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:8px 10px;max-width:100%}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th{font:600 13px/1 var(--body);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:var(--brand-soft)}
+td.num,th.num{text-align:right}
+.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-size:13px;font-weight:600;background:var(--neu-bg);color:var(--ink);border:none;white-space:nowrap}
+button.pill{cursor:pointer}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.ex{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border:1px dashed var(--muted);border-radius:3px;padding:0 4px;margin-left:6px}
+.banner{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.banner .btn{color:var(--warn);border-color:var(--warn);background:transparent}
+.banner .btn.armed{color:#fff}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:4px}
+.tile b{font:700 38px/1 var(--display)}
+.tile b i{font-style:normal;font-size:20px;color:var(--muted)}
+.tile b.money{font-size:26px;overflow-wrap:anywhere}
+.tile span{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.cols{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:10px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card.click{cursor:pointer}
+.card.click:hover{border-color:var(--brand)}
+.card .top{display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+.card strong{font-weight:600;overflow-wrap:anywhere}
+.meta{color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.list>div{display:flex;gap:10px;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--line)}
+.list>div:last-child{border-bottom:none}
+.list>div>span:first-child{min-width:0;overflow-wrap:anywhere}
+.list .pill{flex:none;align-self:flex-start}
+.daynav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.empty{color:var(--muted);padding:22px 14px;text-align:center}
+.chip{border:1px solid var(--line);background:transparent;border-radius:4px;padding:1px 7px;margin:0 4px 4px 0;cursor:pointer;font-size:14px}
+dialog{border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:100%;max-width:min(560px,calc(100% - 32px));padding:0}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+form{display:flex;flex-direction:column;gap:14px;padding:20px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:500}
+.fields .wide{grid-column:1/-1}
+.fields input,.fields select,.fields textarea{width:100%;color:var(--ink);font-size:15px}
+.checks{max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:5px;padding:6px 10px;display:flex;flex-direction:column;gap:4px}
+.checks label{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:15px;font-weight:400}
+.checks input{width:auto}
+.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.actions .danger{margin-right:auto}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;max-width:calc(100% - 32px);z-index:9}
+.help{color:var(--muted);font-size:14px;max-width:70ch;margin:0}
+.obras{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.ob{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ob strong{font:600 20px/1.15 var(--display);text-transform:uppercase;letter-spacing:.02em;overflow-wrap:anywhere}
+.ob:hover{border-color:var(--brand)}
+.ob.on{border-color:var(--brand);box-shadow:inset 0 0 0 2px var(--brand)}
+.obar{display:flex;gap:8px;align-items:center;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.obar select{color:var(--ink);text-transform:none;letter-spacing:0;font-weight:500;font-size:15px;min-width:0;flex:0 1 420px}
+.mapbox{position:relative;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.mapbox svg{display:block;width:100%;height:auto;max-height:74vh;touch-action:none;user-select:none}
+.zoom{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px}
+.zoom .btn{padding:4px 11px;background:var(--surface)}
+.tiles.sm{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tiles.sm .tile b{font-size:30px}
+.filt{align-items:flex-end}
+tr.grp td{background:var(--brand-soft);padding:7px 12px}
+tr.grp.ob td{background:var(--neu-bg);font-size:16px}
+.filt label{display:flex;flex-direction:column;gap:4px;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.filt select{color:var(--ink);text-transform:none;letter-spacing:0;font-weight:400;font-size:15px;max-width:260px}
+.seg{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;align-self:flex-start;background:var(--surface)}
+.seg button{border:none;background:transparent;padding:8px 14px;cursor:pointer;font-weight:600}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.mlab{min-width:130px;text-align:center}
+.mlab::first-letter{text-transform:uppercase}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:680px}
+.ch{font:600 13px/1 var(--body);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:10px 8px;border-bottom:1px solid var(--line)}
+.cd{min-height:96px;padding:6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:3px;cursor:pointer;min-width:0}
+.cd:nth-child(7n){border-right:none}
+.cd.off{background:var(--bg);cursor:default}
+.cd:not(.off):hover{background:var(--brand-soft)}
+.cd b{font:700 18px/1 var(--display)}
+.cd.now b{color:var(--on-brand);background:var(--brand);border-radius:4px;padding:2px 6px;align-self:flex-start}
+.ce{font-size:12px;line-height:1.25;border-radius:3px;padding:2px 5px;background:var(--neu-bg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ce.ok{background:var(--ok-bg);color:var(--ok)} .ce.warn{background:var(--warn-bg);color:var(--warn)} .ce.bad{background:var(--bad-bg);color:var(--bad)}
+.umap{min-width:0;width:auto}
+.umap th.uc,.umap td.uc{width:30px;min-width:30px;padding:6px 0;text-align:center;border-right:1px solid var(--line);font-size:13px}
+.umap th.uc{letter-spacing:0}
+.umap td.uc{cursor:pointer;color:var(--muted)}
+.umap .we{background:var(--bg)}
+.umap td.on{background:var(--brand);color:var(--on-brand);font-weight:600}
+.umap td.pres{box-shadow:inset 0 -3px 0 var(--ok)}
+.umap th.now{color:var(--brand-ink)}
+.umap .rn{position:sticky;left:0;background:var(--surface);white-space:nowrap;min-width:150px;border-right:1px solid var(--line)}
+.umap .rn a{color:var(--ink);font-weight:500}
+@media (max-width:820px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
+  .side{flex-direction:row;align-items:center;gap:12px;padding:10px 16px}
+  .logo{flex:0 0 96px;padding:5px 7px}
+  .side small,.sync{display:none}
+  nav{flex-direction:row;overflow-x:auto;min-width:0;flex:1}
+  nav a{font-size:19px;padding:8px 10px;white-space:nowrap}
+  .ng{display:none}
+  .ubox{top:6px;right:8px}.ubox span{display:none}main{padding-top:56px!important}
+  main{padding-inline:16px}
+  .cols{grid-template-columns:minmax(0,1fr)}
+  .fields{grid-template-columns:minmax(0,1fr)}
+  h1{font-size:27px}
+}
+
+.ng{display:block;margin:16px 0 4px;padding:9px 12px;border-radius:5px;font:700 24px/1.1 var(--display);letter-spacing:.06em;text-transform:uppercase;color:#fff;background:linear-gradient(90deg,#4f7f1c,#6aa821)}
+.ng:first-child{margin-top:0}
+.ng.g4{background:linear-gradient(90deg,#455a64,#607d8b)}.ng.g1{background:linear-gradient(90deg,#1f6f8b,#2b8fb3)}.ng.g2{background:linear-gradient(90deg,#b36b00,#d98a12)}.ng.g3{background:linear-gradient(90deg,#6b4a9e,#8a63c4)}
+.dash{margin:0 0 20px;display:flex;flex-direction:column;gap:14px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.dcard{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px}
+.dcard h3{font:600 14px var(--display);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:6px}
+.br{display:grid;grid-template-columns:minmax(80px,160px) minmax(0,1fr) 56px;gap:8px;align-items:center;font-size:14px}
+.br>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.br .tr{background:var(--neu-bg);border-radius:3px;height:12px;display:block}
+.br .tr i{display:block;height:12px;background:var(--brand);border-radius:3px}
+.br b{text-align:right;font-weight:600}
+.tile.t-bad b{color:var(--bad)}.tile.t-warn b{color:#b36b00}.tile.t-ok b{color:#2e7d32}
+.tile b.sm{font-size:26px}
+.chips{display:flex;flex-wrap:wrap;gap:2px;margin:0 0 12px}
+.chip.on{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.bio{display:block;width:100%;height:calc(100vh - 190px);min-height:640px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.demo-wm{position:fixed;left:0;right:0;top:50%;z-index:2147483000;pointer-events:none;text-align:center;font:900 clamp(28px,5.5vw,78px)/1 Arial,sans-serif;letter-spacing:.1em;color:rgba(128,128,128,.16);transform:translateY(-50%) rotate(-18deg);user-select:none;text-transform:uppercase;white-space:nowrap}
+.av{width:44px;height:44px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px;background:#eee;flex:none}.av.v{border-radius:6px;width:76px;height:50px}
+.fotoup{display:flex;gap:12px;align-items:center}.fotoup img{width:64px;height:64px;border-radius:8px;object-fit:cover;background:#eee}.fotoup img.v{width:96px;height:64px}
+.ubox .umenu{position:absolute;top:calc(100% + 8px);right:0;width:300px;max-height:70vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:6px;display:flex;flex-direction:column;gap:2px}.umenu button{display:flex;gap:10px;align-items:center;text-align:left;background:transparent;border:0;border-radius:8px;padding:6px 8px;cursor:pointer;color:var(--ink);font:inherit}.umenu button:hover{background:var(--brand-soft)}.umenu button.on{outline:2px solid var(--brand)}.umenu .av{width:34px;height:34px;border-radius:50%}.umenu small{color:var(--muted)}
+.pwf{display:flex;flex-direction:column;gap:6px;padding:10px;border:2px solid var(--brand);border-radius:10px;background:var(--surface);max-width:340px;margin:0 0 12px}.pwf input{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:inherit}.pwf .perr{color:#c62828;font-style:normal;font-size:13px}.umenu .pwf{max-width:none;margin:0 0 6px}
+.ubox{position:fixed;top:10px;right:16px;z-index:60;display:flex;gap:10px;align-items:center;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 5px;box-shadow:0 2px 10px rgba(0,0,0,.12);font-size:13px;line-height:1.2}.ubox:empty{display:none}.ubox .av{margin:0;width:36px;height:36px}.ubox .meta{color:var(--muted)}.ubox .btn{padding:3px 10px;font-size:12px;border-radius:999px}
+main{padding-top:62px!important}
+.ulist{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}.ucard{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:8px;cursor:pointer;text-align:center}.ucard:hover{border-color:var(--brand)}.av.big{width:72px;height:72px;margin:0}
+.perfs{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-bottom:14px}.perfs div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:14px}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <span class="logo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAV4AAACNCAMAAADIKOIdAAAA3lBMVEX///9KT1Rhpg5pqxr3+vOdyGq5u71/g4a52JSZnJ+mzXiPkpVma2/q89+ZxWPKy81TWF329vbj4+Tz+Oxyryi11Y5wdHh+tjqUw1vC3aKJjJDX2Nmr0H7P0dLU571WW1+oq62Nv1F8gITL4rCw04eGu0bq6+zf7c5iZmtltgG/wcOeoKOtsLLh7tLR5blvriNJSlhjrQlGQWBHPmWdzGJ4j2bDv85nnilhf0NUXVpIR1tjjjRbbFFlly5cdkdiiDtYZ1RHQ11dc0xooyJSVF9hgz5XY1e74oxyl0p/f4qe9+tCAAAJKklEQVR4nO2daVfbOBRAHUNIQwiEELKYJSFACCSU0s5MO11mprPP//9DE0uyrdVafXyOz7ufmsVCuQhJ7+k5jaJQPFwHawoQ6I8e6u5Cg+nHN3V3ocE8xzHMDZVxG8f3dfehuezsxrd1d6KxzHZ2R3V3orHc7ezGl3X3oqkcpnbj57q70VCmyC7syqrhBtmFha0S9ifY7qTujjSSsxG2G5/X3ZMm0n8hduN+3V1pIA97md3jurvSQN7GOW/r7kvzmBV2YWELznlhN57V3ZnGcUfZfdmvuzdNo03ZjQ/r7k3TOKbtxnAIFJYbxi7k0YOSBcKwsFVBHggTII8ekuc91m58V3ePmsRDzAPphnC8FexO6+5Sg7gV7EIePRxvRLuQbgjGpWg3flN3pxpDW2J376zuXjWFqcRu3K67V03hXmYXyvbCwAfCBEg3BKE/ktqFXVkQ+nwgTIB0Qwiu5XKhbC8IklCNAGV7/syUdqFsz587pV3YlfkjC4QJkG7wRhYIZ0DZni83JXYhj+6LPBAmQNmeH4pAOAOqG7w4eym1C+kGL1SBcAZUN/ggnlmyQNmeDzq7ULbng+TMkgMWNnf0dmFhc+dQa9cnjz7s9KR0hvj1VZL0kmQlXLfpUE9fKBpJSCMHSZdmsb3iWpsdHx4eq5Im+5ftw/YhOaXdb0/b7RvxrbMb6un0gYSpJGV7rLfrk244aSkgBoboQSJct06fJvaiA00jS+GFQXIhfEhVFcE+2jX16QcjYSlH+YJz+oEE8cBBeiLM4VO2Z6a3dcJfd2SklzjsyF7rUa3Z6hWPDtp0C8Z6SwPhDJ90g6He+Sl3nZle0ohUb2tdTDnWeoXF3EWvJhDGvP5gLlME6x0IcHpbXe46iV5JI/ToPUo6mPGAtHmUt2avl58QRb17AtxF/fJAmPD4408WOnlOyOc85SGvZ3pb3Gok6h2rG0F6D4qLh5sB+zuz18vPiKLeu2hfgL7iQRMIE7sf378bdMWl3ZATdhgJ5Hq590j1quD17n4RY9Rotr456OWOFkW9mgS48kSY0/vpQ9pRdiU2x1hva8M876k3Ws3T57LlzUUve7Zoq1d9IszwuvfzZzK8DvjlxwRzvS3mF+irF1+zJg9c9LLvt9SrPhHmBu+XD4UAhznCSG+C/Czp5731ng6oFiz13uO1i64HtdN7rrApjt6v7+nNzpKPh3QY6e2uUONb6nlvvbgF8hdhqXeCt1T0CY2V3rIzS3bwfvveYpkvrOYII72daNOidUYh9KLFjYwGS70jsjBRWW4bvcZ248dfPrQEekNlywKGenEQTMXGgfS6jd4RiWapNLeFXqNQDfH6x5/vRL27j/qk/qwspnpx+FE066+XzlrY6z1DTxb14uZ6ze3Gj79KBi9iYDhHmOqNEtRq3qi33is0k5H27PWSNG2eOjPVy9/FWj56f+OnXoqOyVbYWO8KrfR5HsZb75KebRz04lGYh7mGerXnPszg/fJe5jVnvdUOYaR3MB4f0QwKFbne6Ak1maXORL1CI8VMItHbRa1l+xwXvc9IQZY6E/W+3E9oRpO0Bf3RBK33q2puyOeIjWYrLM+YLSR68XjLBrpBxqzwKegd4gxwJ3vsopeUMz6r9ArgFq5La50Yux/fSRc2lqWQq3XUiwO4rqve3tUBZtHFCYfWIP/VO+mN0OZ3Yql3N/2WFEIyej/pBi9mvoiUWOiNtui1C0e9IsXa4KYXb37PbfXuGpkZLHCve39/N9LbKtkK47k3YRkXA57Wi7eqY4XeOdtGZ1wEkFK9a6pLbnrJMWRfrnfSntLcTJl7Kh+0h2y6hY1lIN8KG+8cUi5QSxu5Xt3OgZPLrHSOeiM0CNG3AFgnJKP+ZXnCl0s36JBPwVZ6yXqfWrXXO18jcCKdS4246sVpxTQ2ttebXl4SYjx+/Gwhd63YQdjpxVaXkce+F/8FbNk3uOrFF6apMye9uyGszD9I0w0qlJ/dUu9VJsc9rFigJtiQx1lvHhs76t21cC49cnt9GZiP3qWydUu9eWzsEbWNxXc76yV58Wt3vZF8K6xON4j01E3b6j0lhzgeeodin9z14jsiRvimHke96RzBLXOvpekGY7vWeklsfNVx10umB3p189DbRzpm5156d8yYoofHb8bbhkVZq9Z6SdGCV0pnyf9QD734YGc08dUbRc9URdTj76ZzA59nZbHXSx1uuuoVpgcfvVEx7Pz0UlthVR5dRJNYt9dLYmMfvWR6KHbiXnqvg+mNsq3w41+Gg1d3tOmgtyh4dM/3omfWebrUS29xr2oAvbtwebpb2MzSDQNtRh3rFaqXTlfko8v0Xij0KhsR9TLZN6L3LjrjQWdpWr37I5leSXOG3+R09s+/RgvbXF/3oCzh21IeOL3k3FhbwpfPTJJ0Op5hspkL51eEkjtcF67Vm5fcsBkzsYTvRauD8J/JzHtkcNymLEAt04t3vQYFqESp7DAIxSfMWZsEQ73Z9boC1D29D/yhTeyOTQ4z3fSe+Otlzu589ZKbKkPp3ag+D4XgRIpS7wK/jvSKMXXPSu9SopdchH+MpV7xjxzHxrrif1O9a71d8XYIKcNeV0pCthyr9N/i1nmF3pTfupIoGiEra3rriljCueh1Nwle3dJbVyS00UEae+tK+kByt8Ndm7r55VbRnOG3DT3p7fLV5IA5Y63drb4RQMEF2K2Sns5u6dE7UM7pAOxWyLZc7sCi/BQQKV/YDAJhoARlIIAwCYSBEhQVRZiSrCBgwrDMrvpEGDBjUWK37MwSMKIk3bDRXw2Uo0xOaU6EASPUuzLjm4EAJep0A9gNQFchV39mCejBFV4SuxAIh0CxsM3BbhCOpHYhEA6DPN0AgXAgEpldwzNLQMdKZhcC4VDI8ugQCIdCtiuDM8tgSKobIFQLh/g9onBmGQ4xjw6BcED4sj0IhEPCL2wQqgXlCexWCZtHh0A4LFeMXQiEA8OU7UEgHJgVXba3qLs3jYNON0AgHBwqjw6BcHCoPDoEwuEp8ugQCIcnTzfAmWUVZOmGNYRqVbCGQLhCSHUDFO9WA/dtrEBQcNke3MVaEahsD06EKwLl0SEQrooFBMJVcgSBcIWcMP+XDBCYJditkCu4R7hKniBFFpD/ATXdtS3A2Vy/AAAAAElFTkSuQmCC" alt="ENERLINE"></span>
+    <small>Gestão de obra</small>
+    <nav id="nav"></nav>
+    <div class="ubox" id="ubox"></div>
+    <div class="sync" id="sync">A ligar…</div>
+  </aside>
+  <main id="main"></main>
+</div>
+<dialog id="dlg"></dialog>
+<div id="toast" hidden></div>
+<div class="demo-wm" aria-hidden="true">DEMONSTRAÇÃO</div>
+<input type="file" id="pfile" accept=".csv,.txt,.dat,.log" hidden>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const p2=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+const today=()=>iso(new Date());
+const fdate=s=>s?s.split('-').reverse().join('/'):'—';
+const addDay=(s,n)=>{const d=new Date(s+'T12:00');d.setDate(d.getDate()+n);return iso(d)};
+const longDay=s=>{const t=new Date(s+'T12:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'});return t[0].toUpperCase()+t.slice(1)};
+const nn=x=>{x=String(x??'').trim();return /^\d+$/.test(x)?String(+x):x};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- fotografias geradas (SVG leve, sem imagens pesadas) ---------- */
+const AVC={};
+const avHash=s=>{let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+const avUri=svg=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+function avW(w){const key='w'+(w.id||'')+w.nome+(w.funcao||'');if(AVC[key])return AVC[key];
+  const h=avHash((w.id||'')+w.nome),pk=(a,o=0)=>a[(h>>>o)%a.length],f=String(w.funcao||'');
+  const skin=pk(['#8d5524','#a0673a','#6f4120','#c68642','#5c3a1e','#7b4a2a','#9a6236'],3),sk2=pk(['#7a4a1f','#8f5a30','#5f3719','#b57639','#4d3018','#6b4023','#85542d'],3);
+  const fem=/^(Ana|Maria|Isabel|Teresa|Luísa|Luisa|Rosa|Marta|Helena|Joana|Esperança|Carla|Sofia)\b/.test(w.nome||'');
+  const helm=/Chefe|Encarregado/.test(f)?'#f4f4f2':/segurança/i.test(f)?'#1e6fc8':/Motorista/.test(f)?'#e8590c':/Operador/.test(f)?'#ff9800':/Topógrafo/.test(f)?'#2e9e57':pk(['#f5c400','#f5c400','#ffb300','#f4f4f2'],7);
+  const vest=pk(['#f57c00','#c5e11e','#f57c00'],11),bg=pk(['#dfe8d6','#d9e2ec','#ece6d8','#e3dce8','#d8ebe6'],13);
+  const hair=fem?`<ellipse cx="32" cy="31" rx="13.5" ry="15" fill="#1b1b1b"/><circle cx="32" cy="10" r="5" fill="#1b1b1b"/>`:'';
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${bg}"/><path d="M5 64c0-15 12-21 27-21s27 6 27 21z" fill="${vest}"/><path d="M21 47v17M43 47v17" stroke="#fff" stroke-width="3.2"/><path d="M26 43l6 7 6-7" fill="none" stroke="#37474f" stroke-width="2"/><rect x="27" y="36" width="10" height="9" fill="${sk2}"/>${hair}<ellipse cx="32" cy="29" rx="11" ry="13" fill="${skin}"/><path d="M19.5 25c0-10 5-15.5 12.500-15.5S44.500 15 44.500 25z" fill="${helm}"/><rect x="17" y="23.500" width="30" height="3.600" rx="1.800" fill="${helm}"/><path d="M32 9.500v14" stroke="#0002" stroke-width="1.500"/><circle cx="27.500" cy="30" r="1.400" fill="#1c1c1c"/><circle cx="36.500" cy="30" r="1.400" fill="#1c1c1c"/><path d="M28 35q4 3 8 0" fill="none" stroke="#4a2411" stroke-width="1.400" stroke-linecap="round"/></svg>`;
+  return AVC[key]=avUri(svg)}
+function avV(e){const nm=e.nome||'',key='v'+nm+(e.grupo||'');if(AVC[key])return AVC[key];
+  const g=e.grupo||'',col=/serviço/.test(g)?'#f4f4f2':/obra/.test(g)&&/Viatura/.test(g)?'#6aa821':/pesado/.test(g)?'#546e7a':/Elevação/.test(g)?'#f5a300':/Energia/.test(g)?'#c62828':'#f2b705',dk='#263238';
+  const wh=(x,y=49,r=7)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#222"/><circle cx="${x}" cy="${y}" r="${r*.42}" fill="#cfd8dc"/>`;
+  let b;
+  if(/Autocarro/.test(nm))b=`<rect x="6" y="14" width="84" height="34" rx="6" fill="${col}"/>${[12,28,44,60].map(x=>`<rect x="${x}" y="19" width="13" height="11" rx="2" fill="#b3e5fc"/>`).join('')}<rect x="76" y="19" width="10" height="17" rx="2" fill="#b3e5fc"/><rect x="6" y="38" width="84" height="3" fill="#0003"/>${wh(24)}${wh(70)}`;
+  else if(/Camião cesto/.test(nm))b=`<path d="M8 24h22l7 12v12H8z" fill="${col}"/><path d="M13 27h14l4 8H13z" fill="#b3e5fc"/><rect x="38" y="32" width="50" height="14" fill="${dk}"/><path d="M54 32l22-22" stroke="#f5a300" stroke-width="5"/><rect x="72" y="4" width="14" height="9" fill="#f5a300"/>${wh(20)}${wh(56)}${wh(76)}`;
+  else if(/Camião grua|grua móvel|Grua móvel/i.test(nm))b=`<path d="M8 28h20l6 11v9H8z" fill="${col}"/><path d="M12 31h13l3 6H12z" fill="#b3e5fc"/><rect x="34" y="34" width="54" height="12" fill="${dk}"/><path d="M40 34l42-26" stroke="#f5a300" stroke-width="5"/><path d="M82 8v14" stroke="#555" stroke-width="1.500"/><rect x="79" y="22" width="6" height="5" fill="#555"/>${wh(20)}${wh(52)}${wh(72)}`;
+  else if(/basculante/.test(nm))b=`<path d="M8 26h20l6 11v11H8z" fill="${col}"/><path d="M12 29h13l3 6H12z" fill="#b3e5fc"/><path d="M36 22l50-4-4 30H36z" fill="${dk}"/>${wh(20)}${wh(58)}${wh(76)}`;
+  else if(/transporte de postes/.test(nm))b=`<path d="M8 26h20l6 11v11H8z" fill="${col}"/><rect x="36" y="38" width="54" height="5" fill="${dk}"/><rect x="38" y="30" width="52" height="5" rx="2.500" fill="#b0a99f"/><rect x="38" y="24" width="52" height="5" rx="2.500" fill="#c9c2b8"/>${wh(20)}${wh(60)}${wh(78)}`;
+  else if(/Carrinha de caixa|caixa aberta/.test(nm))b=`<path d="M8 30h18l8-10h10v10h40v16H8z" fill="${col}"/><path d="M26 29l6-8h8v8z" fill="#b3e5fc"/><rect x="44" y="24" width="40" height="6" fill="${dk}"/>${wh(24)}${wh(72)}`;
+  else if(/Carrinha|Pick-up|Ligeiro/.test(nm))b=`<path d="M8 32h12l9-13h22l8 13h19v14H8z" fill="${col}" stroke="#90a4ae" stroke-width="1"/><path d="M26 31l6-10h17l5 10z" fill="#b3e5fc"/><path d="M8 40h82" stroke="#6aa821" stroke-width="3"/>${wh(24)}${wh(70)}`;
+  else if(/Escavadora|Retroescavadora/.test(nm))b=`<rect x="10" y="46" width="58" height="9" rx="4.500" fill="#333"/><rect x="16" y="30" width="34" height="16" rx="3" fill="${col}"/><rect x="18" y="20" width="16" height="14" rx="2" fill="#b3e5fc" stroke="${col}" stroke-width="2"/><path d="M48 34l22-20 14 16" fill="none" stroke="${col}" stroke-width="5" stroke-linejoin="round"/><path d="M82 28l10 8-12 3z" fill="${dk}"/>`;
+  else if(/Plataforma|Empilhador|Guincho|Freio|Perfuradora/.test(nm))b=`<rect x="14" y="44" width="62" height="8" rx="2" fill="${col}"/>${wh(26,54,5)}${wh(62,54,5)}<path d="M30 44l26-24M56 44L30 20M34 36l16-12" stroke="${dk}" stroke-width="3"/><rect x="24" y="14" width="40" height="7" rx="1" fill="${dk}"/><path d="M26 14v-5h36v5" fill="none" stroke="${dk}" stroke-width="1.800"/>`;
+  else if(/Gerador|Compressor|soldar|Betoneira/.test(nm))b=`<rect x="14" y="22" width="68" height="28" rx="3" fill="${col}"/>${[24,34,44,54,64].map(x=>`<rect x="${x}" y="27" width="4" height="14" fill="#0003"/>`).join('')}<rect x="70" y="28" width="9" height="6" fill="#eee"/><rect x="18" y="50" width="8" height="4" fill="${dk}"/><rect x="70" y="50" width="8" height="4" fill="${dk}"/><path d="M82 30l8 8" stroke="${dk}" stroke-width="2.500"/>`;
+  else b=`<rect x="8" y="26" width="80" height="20" rx="4" fill="${col}"/>${wh(26)}${wh(70)}`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64"><rect width="96" height="64" fill="#eef1ea"/><rect y="56" width="96" height="8" fill="#cfd6c8"/>${b}</svg>`;
+  return AVC[key]=avUri(svg)}
+
+const VIEWS=[['hoje','Hoje','Obra'],['mapa','Localizar obras'],['tarefas','Tarefas diárias'],['plano','Planeamento'],['progresso','Avanço e medições'],
+ ['trabalhadores','Trabalhadores','Pessoas'],['ponto','Relógios de ponto'],['biometria','Biometria facial e digital'],['hst','Segurança e HST'],['documentos','Documentos e validades'],['subempreiteiros','Subempreiteiros'],['rh','RH · Primavera'],
+ ['equipamentos','Máquinas e viaturas','Meios'],['combustivel','Combustível'],
+ ['armazens','Armazéns','Armazém e compras'],['stock','Stock'],['transferencias','Transferências'],['armazem','Pedidos ao armazém'],['requisicoes','Requisições'],['compras','Compras'],['fornecedores','Fornecedores'],['logistica','Logística'],
+ ['utilizadores','Utilizadores e perfis','Sistema']];
+const TONE={ok:['Ativo','Disponível','Concluída','Entregue','Recebido','Completo','Em obra','OK','Válido','Satisfeita','Recebida','Fechado','Medido','Faturado','Central'],warn:['Expira em 30 dias','Pedida','Aprovada','Em compra','Em análise','Aberto','Suspenso','Atraso','Saída antecipada','Em preparação','Em curso','Em uso','Em trânsito','Encomendado','Aprovado','Férias','Manutenção','Sem saída'],bad:['Expirado','Abaixo do mínimo','Recusada','Alta','Cancelado','Falta','Falta injustificada','Sem stock','Suspensa','Avariado','Ausente','Urgente','Sem registo']};
+const tone=v=>TONE.ok.includes(v)?'ok':TONE.warn.includes(v)?'warn':TONE.bad.includes(v)?'bad':'';
+const pill=v=>v?`<span class="pill ${tone(v)}">${esc(v)}</span>`:'—';
+
+const PERF={
+ 'Administrador':{v:'*',edit:true,d:'Acesso total, incluindo utilizadores e perfis.'},
+ 'Diretor de obra':{v:'*',edit:true,d:'Vê e altera tudo das suas obras, exceto utilizadores.'},
+ 'Encarregado':{v:['hoje','mapa','tarefas','plano','progresso','trabalhadores','ponto','biometria','hst','documentos','equipamentos','combustivel','logistica','armazem','requisicoes'],edit:true,d:'Equipas, tarefas, ponto, meios e pedidos da obra.'},
+ 'Fiel de armazém':{v:['hoje','armazens','stock','transferencias','armazem','requisicoes','logistica'],edit:true,d:'Armazéns, stock, transferências e pedidos.'},
+ 'Compras':{v:['hoje','compras','fornecedores','requisicoes','armazens','stock','subempreiteiros'],edit:true,d:'Compras, fornecedores e requisições.'},
+ 'RH':{v:['hoje','trabalhadores','ponto','biometria','documentos','rh','hst'],edit:true,d:'Pessoas, ponto, biometria e RH · Primavera.'},
+ 'Técnico HST':{v:['hoje','hst','documentos','trabalhadores','biometria'],edit:true,d:'Segurança, saúde e documentos de validade.'},
+ 'Consulta (só leitura)':{v:'*',edit:false,d:'Vê tudo, não altera nada.'}};
+const S={
+ trabalhadores:{title:'Trabalhadores',novo:'Novo trabalhador',vazio:'Ainda não há trabalhadores registados.',sort:(a,b)=>(a.nome||'').localeCompare(b.nome||''),
+  cols:['numPonto','nome','funcao','equipa','telefone','estado'],
+  fields:[{k:'nome',l:'Nome',req:1,wide:1,av:'w'},{k:'foto',l:'Fotografia (opcional)',photo:'w',wide:1},{k:'numPonto',l:'Nº no relógio de ponto'},{k:'codPrim',l:'Código no Primavera'},{k:'vencimento',l:'Vencimento base (Kz)',type:'number',money:1},{k:'funcao',l:'Função'},{k:'equipa',l:'Equipa'},{k:'telefone',l:'Telefone'},{k:'estado',l:'Estado',opts:['Ativo','Férias','Ausente','Desmobilizado']}]},
+ tarefas:{title:'Tarefas',novo:'Nova tarefa',vazio:'',sort:(a,b)=>(a.hora||'99').localeCompare(b.hora||'99'),cols:['data','hora','titulo','frente','responsaveis','equipamentos','prioridade','estado'],
+  fields:[{k:'titulo',l:'Tarefa',req:1,wide:1},{k:'data',l:'Dia',type:'date',req:1},{k:'hora',l:'Hora de início',type:'time'},{k:'frente',l:'Frente de obra / local',wide:1},{k:'responsaveis',l:'Trabalhadores',refs:'trabalhadores',wide:1},{k:'equipamentos',l:'Máquinas e viaturas',refs:'equipamentos',wide:1},{k:'prioridade',l:'Prioridade',opts:['Normal','Urgente']},{k:'estado',l:'Estado',opts:['Pendente','Em curso','Concluída']},{k:'notas',l:'Notas',type:'area',wide:1}]},
+ equipamentos:{title:'Máquinas e viaturas',novo:'Nova máquina ou viatura',vazio:'Ainda não há máquinas nem viaturas registadas.',sort:(a,b)=>(a.tipo+a.nome).localeCompare(b.tipo+b.nome),
+  cols:['nome','tipo','grupo','matricula','operador','local','proxManut','estado'],chip:'grupo',
+  fields:[{k:'nome',l:'Designação',req:1,wide:1,av:'e'},{k:'foto',l:'Fotografia (opcional)',photo:'e',wide:1},{k:'tipo',l:'Tipo',opts:['Máquina','Viatura']},{k:'grupo',l:'Grupo',opts:['Viatura de serviço','Viatura de obra','Camião / pesado','Elevação e lançamento','Energia e soldadura','Máquina de obra']},{k:'matricula',l:'Matrícula / nº de série'},{k:'estado',l:'Estado',opts:['Disponível','Em uso','Manutenção','Avariado']},{k:'operador',l:'Operador / condutor',ref:'trabalhadores'},{k:'local',l:'Onde está'},{k:'proxManut',l:'Próxima manutenção',type:'date'},{k:'notas',l:'Notas',type:'area',wide:1}]},
+ logistica:{title:'Logística',novo:'Novo transporte',vazio:'Ainda não há transportes planeados.',sort:(a,b)=>(b.data||'').localeCompare(a.data||''),
+  cols:['data','descricao','origem','destino','viatura','motorista','estado'],chip:'estado',
+  fields:[{k:'descricao',l:'O que transportar',req:1,wide:1},{k:'data',l:'Dia',type:'date'},{k:'estado',l:'Estado',opts:['Planeado','Em trânsito','Entregue']},{k:'origem',l:'Origem'},{k:'destino',l:'Destino'},{k:'viatura',l:'Viatura',ref:'equipamentos'},{k:'motorista',l:'Motorista',ref:'trabalhadores'},{k:'notas',l:'Notas',type:'area',wide:1}]},
+ compras:{title:'Compras',novo:'Novo pedido de compra',vazio:'Ainda não há pedidos de compra.',sort:(a,b)=>(b.data||'').localeCompare(a.data||''),
+  cols:['data','artigo','qtd','unidade','fornecedor','valor','prazo','requisicao','estado'],chip:'estado',
+  fields:[{k:'artigo',l:'Artigo / material',req:1,wide:1},{k:'qtd',l:'Quantidade',type:'number'},{k:'unidade',l:'Unidade (un, m, kg, sacos…)'},{k:'fornecedor',l:'Fornecedor',ref:'fornecedores'},{k:'valor',l:'Valor estimado (Kz)',type:'number',money:1},{k:'data',l:'Data do pedido',type:'date'},{k:'prazo',l:'Entrega prevista',type:'date'},{k:'requisicao',l:'Requisição de origem',ref:'requisicoes'},{k:'solicitante',l:'Pedido por',ref:'trabalhadores'},{k:'estado',l:'Estado',opts:['Pedido','Aprovado','Encomendado','Recebido','Cancelado']},{k:'notas',l:'Notas',type:'area',wide:1}]},
+ armazem:{title:'Pedidos ao armazém',novo:'Novo pedido ao armazém',vazio:'Ainda não há pedidos ao armazém.',sort:(a,b)=>(b.data||'').localeCompare(a.data||''),
+  cols:['data','artigo','qtd','unidade','frente','pedidoPor','estado'],chip:'estado',
+  fields:[{k:'artigo',l:'Artigo / material',req:1,wide:1},{k:'qtd',l:'Quantidade',type:'number'},{k:'unidade',l:'Unidade (un, m, kg, sacos…)'},{k:'data',l:'Dia',type:'date'},{k:'estado',l:'Estado',opts:['Pedido','Em preparação','Entregue','Sem stock']},{k:'frente',l:'Para que frente de obra'},{k:'pedidoPor',l:'Pedido por',ref:'trabalhadores'},{k:'notas',l:'Notas',type:'area',wide:1}]},
+ obras:{title:'Obras',novo:'Nova obra',sort:(a,b)=>(a.nome||'').localeCompare(b.nome||''),
+  fields:[{k:'nome',l:'Nome da obra',req:1,wide:1},{k:'tipo',l:'Tipo',opts:['Subestação','Linha aérea','Rede de distribuição','Posto de transformação','Manutenção','Outra']},{k:'estado',l:'Estado',opts:['Em curso','Planeada','Suspensa','Concluída']},{k:'local',l:'Local'},{k:'provincia',l:'Província'},{k:'cliente',l:'Cliente'},{k:'inicio',l:'Início',type:'date'},{k:'fim',l:'Fim previsto',type:'date'},{k:'lat',l:'Latitude',type:'number',neg:1},{k:'lon',l:'Longitude',type:'number',neg:1},{k:'hEntrada',l:'Hora de entrada',type:'time'},{k:'hSaida',l:'Hora de saída',type:'time'},{k:'pausa',l:'Pausa de almoço (min)',type:'number'},{k:'tolerancia',l:'Tolerância (min)',type:'number'},{k:'hSab',l:'Horas normais ao sábado',type:'number'},{k:'notas',l:'Notas',type:'area',wide:1}]},
+ rh:{title:'Movimentos manuais',novo:'Novo movimento manual',vazio:'Ainda não há movimentos manuais.',sort:(a,b)=>(b.data||'').localeCompare(a.data||''),
+  cols:['data','tipo','codigo','trab','qtd','valor','obs'],
+  fields:[{k:'tipo',l:'Tipo de alteração',opts:['R · Remuneração','D · Desconto','F · Falta','H · Hora extra']},{k:'codigo',l:'Rubrica',ref:'rubricas',req:1},{k:'trab',l:'Trabalhador',ref:'trabalhadores',req:1,wide:1},{k:'tipoProc',l:'Tipo de processamento',opts:['V','T','SF','SN','Extraordinário']},{k:'data',l:'Data do movimento',type:'date',req:1},{k:'qtd',l:'Quantidade',type:'number'},{k:'valor',l:'Valor (vazio = calculado pela rubrica)',type:'number',money:1},{k:'obs',l:'Observações',wide:1}]},
+ rubricas:{title:'Rubricas do Primavera',novo:'Nova rubrica',sort:(a,b)=>(a.codigo||'').localeCompare(b.codigo||''),
+  fields:[{k:'codigo',l:'Código no Primavera',req:1},{k:'tipo',l:'Tipo de alteração',opts:['R · Remuneração','D · Desconto','F · Falta','H · Hora extra']},{k:'descricao',l:'Descrição',wide:1},{k:'calculo',l:'Como se calcula o valor',opts:['Sem valor','Valor fixo','Valor unitário × quantidade','% do valor-hora × horas','% do valor-dia × dias'],wide:1},{k:'valor',l:'Valor (Kz) ou percentagem',type:'number'}]},
+
+ stock:{title:'Stock por armazém',novo:'Novo artigo em stock',vazio:'Ainda não há artigos em stock.',sort:(a,b)=>(name('armazens',a.armazem)+a.artigo).localeCompare(name('armazens',b.armazem)+b.artigo),chip:'armazem',
+  cols:['armazem','artigo','unidade','qtd','minimo','local','situacao'],
+  fields:[{k:'armazem',l:'Armazém',ref:'armazens',req:1,wide:1},{k:'artigo',l:'Artigo / material',req:1,wide:1},{k:'unidade',l:'Unidade'},{k:'qtd',l:'Quantidade em stock',type:'number'},{k:'minimo',l:'Stock mínimo',type:'number'},{k:'local',l:'Localização no armazém'},{k:'situacao',l:'Situação',calc:1,opts:[]}]},
+ armazens:{title:'Armazéns',novo:'Novo armazém',vazio:'Ainda não há armazéns.',sort:(a,b)=>(a.tipo==='Central'?'0':'1'+a.nome).localeCompare(b.tipo==='Central'?'0':'1'+b.nome),chip:'tipo',
+  cols:['nome','tipo','local','obra','responsavel','estado'],
+  fields:[{k:'nome',l:'Nome do armazém',req:1,wide:1},{k:'tipo',l:'Tipo',opts:['Central','Obra','Satélite']},{k:'estado',l:'Estado',opts:['Ativo','Inativo']},{k:'local',l:'Localização',wide:1},{k:'obra',l:'Obra associada',ref:'obras'},{k:'responsavel',l:'Responsável'}]},
+ transferencias:{title:'Transferências de armazém',novo:'Nova transferência',vazio:'Ainda não há transferências.',sort:(a,b)=>(b.data||'').localeCompare(a.data||''),chip:'estado',
+  cols:['data','de','para','artigo','qtd','unidade','viatura','estado'],
+  fields:[{k:'de',l:'Armazém de origem',ref:'armazens',req:1},{k:'para',l:'Armazém de destino',ref:'armazens',req:1},{k:'artigo',l:'Artigo / material',req:1,wide:1},{k:'qtd',l:'Quantidade',type:'number'},{k:'unidade',l:'Unidade'},{k:'data',l:'Data',type:'date'},{k:'viatura',l:'Viatura de transporte',ref:'equipamentos'},{k:'pedidoPor',l:'Pedido por',ref:'trabalhadores'},{k:'estado',l:'Estado (ao marcar «Recebida» o stock é atualizado)',opts:['Pedida','Aprovada','Em trânsito','Recebida','Recusada'],wide:1},{k:'notas',l:'Notas',type:'area',wide:1}]},
+ requisicoes:{title:'Requisições de material',novo:'Nova requisição',vazio:'Ainda não há requisições.',sort:(a,b)=>(b.data||'').localeCompare(a.data||''),chip:'estado',
+  cols:['numero','data','artigo','qtd','unidade','frente','pedidoPor','urgencia','destino','estado'],
+  fields:[{k:'numero',l:'Nº da requisição',req:1},{k:'data',l:'Data',type:'date'},{k:'artigo',l:'Artigo / material',req:1,wide:1},{k:'qtd',l:'Quantidade',type:'number'},{k:'unidade',l:'Unidade'},{k:'frente',l:'Frente de obra'},{k:'pedidoPor',l:'Pedido por',ref:'trabalhadores'},{k:'urgencia',l:'Urgência',opts:['Normal','Urgente']},{k:'destino',l:'Como satisfazer',opts:['Armazém de obra','Armazém central','Compra']},{k:'estado',l:'Estado',opts:['Pedida','Aprovada','Em compra','Satisfeita','Recusada']},{k:'notas',l:'Notas',type:'area',wide:1}]},
+ fornecedores:{title:'Fornecedores',novo:'Novo fornecedor',vazio:'Ainda não há fornecedores.',sort:(a,b)=>(a.nome||'').localeCompare(b.nome||''),chip:'categoria',
+  cols:['nome','categoria','telefone','email','local','prazoDias','avaliacao','estado'],
+  fields:[{k:'nome',l:'Fornecedor',req:1,wide:1},{k:'categoria',l:'Categoria'},{k:'nif',l:'NIF'},{k:'telefone',l:'Telefone'},{k:'email',l:'Email'},{k:'local',l:'Localidade'},{k:'prazoDias',l:'Prazo médio de entrega (dias)',type:'number'},{k:'avaliacao',l:'Avaliação',opts:['A','B','C']},{k:'estado',l:'Estado',opts:['Ativo','Suspenso']}]},
+ combustivel:{title:'Combustível',novo:'Novo abastecimento',vazio:'Ainda não há abastecimentos.',sort:(a,b)=>(b.data||'').localeCompare(a.data||''),chip:'posto',
+  cols:['data','viatura','motorista','litros','valor','km','percorrido','media','posto'],
+  fields:[{k:'data',l:'Dia',type:'date',req:1},{k:'viatura',l:'Viatura / máquina',ref:'equipamentos',req:1,wide:1},{k:'motorista',l:'Condutor',ref:'trabalhadores'},{k:'tipo',l:'Combustível',opts:['Gasóleo','Gasolina']},{k:'litros',l:'Litros',type:'number'},{k:'valor',l:'Valor (Kz)',type:'number',money:1},{k:'km',l:'Quilómetros no odómetro',type:'number'},{k:'posto',l:'Posto / depósito'},{k:'percorrido',l:'Km percorridos',calc:1},{k:'media',l:'Consumo médio',calc:1}]},
+ hst:{title:'Segurança e HST',novo:'Novo registo de segurança',vazio:'Ainda não há registos de segurança.',sort:(a,b)=>(b.data||'').localeCompare(a.data||''),chip:'tipo',
+  cols:['data','tipo','frente','descricao','gravidade','trabalhador','responsavel','estado'],
+  fields:[{k:'data',l:'Dia',type:'date',req:1},{k:'tipo',l:'Tipo',opts:['Entrega de EPI','Inspeção','Formação','Quase-acidente','Incidente']},{k:'frente',l:'Frente de obra'},{k:'descricao',l:'Descrição',req:1,wide:1},{k:'gravidade',l:'Gravidade',opts:['Baixa','Média','Alta']},{k:'trabalhador',l:'Trabalhador envolvido',ref:'trabalhadores'},{k:'responsavel',l:'Responsável pelo registo',ref:'trabalhadores'},{k:'estado',l:'Estado',opts:['Aberto','Em análise','Fechado']}]},
+ subempreiteiros:{title:'Subempreiteiros',novo:'Novo subempreiteiro',vazio:'Ainda não há subempreiteiros.',sort:(a,b)=>(a.nome||'').localeCompare(b.nome||''),chip:'estado',
+  cols:['nome','especialidade','contrato','inicio','fim','trabalhadores','valor','estado'],
+  fields:[{k:'nome',l:'Empresa',req:1,wide:1},{k:'especialidade',l:'Especialidade'},{k:'contrato',l:'Nº do contrato'},{k:'inicio',l:'Início',type:'date'},{k:'fim',l:'Fim',type:'date'},{k:'trabalhadores',l:'Trabalhadores em obra',type:'number'},{k:'valor',l:'Valor do contrato (Kz)',type:'number',money:1},{k:'responsavel',l:'Responsável'},{k:'telefone',l:'Telefone'},{k:'estado',l:'Estado',opts:['Ativo','Suspenso','Concluído']}]},
+ progresso:{title:'Avanço e medições',novo:'Novo registo de avanço',vazio:'Ainda não há registos de avanço.',sort:(a,b)=>(a.frente||'').localeCompare(b.frente||'')||(a.atividade||'').localeCompare(b.atividade||''),chip:'frente',
+  cols:['data','frente','atividade','unidade','previsto','executado','pct','auto','estado'],
+  fields:[{k:'atividade',l:'Atividade',req:1,wide:1},{k:'frente',l:'Frente de obra'},{k:'unidade',l:'Unidade (un, m, km, t)'},{k:'previsto',l:'Quantidade prevista',type:'number'},{k:'executado',l:'Quantidade executada',type:'number'},{k:'data',l:'Última medição',type:'date'},{k:'auto',l:'Auto de medição'},{k:'estado',l:'Estado',opts:['Em curso','Medido','Faturado']},{k:'pct',l:'Avanço',calc:1}]},
+ documentos:{title:'Documentos e validades',novo:'Novo documento',vazio:'Ainda não há documentos.',sort:(a,b)=>(a.validade||'9').localeCompare(b.validade||'9'),chip:'tipo',
+  cols:['tipo','trabalhador','equipamento','numero','emissao','validade','entidade','situacao'],
+  fields:[{k:'tipo',l:'Tipo de documento',opts:['Certificado de trabalhos em altura','Certificado de eletricista (BT/MT)','Exame médico de aptidão','Carta de condução','Formação de primeiros socorros','Seguro de viatura','Inspeção periódica','Licença de obra','Outro'],wide:1},{k:'trabalhador',l:'Trabalhador',ref:'trabalhadores'},{k:'equipamento',l:'Viatura / máquina',ref:'equipamentos'},{k:'numero',l:'Nº do documento'},{k:'emissao',l:'Emissão',type:'date'},{k:'validade',l:'Validade',type:'date'},{k:'entidade',l:'Entidade emissora'},{k:'notas',l:'Notas',type:'area',wide:1},{k:'situacao',l:'Situação',calc:1,opts:[]}]},
+ utilizadores:{title:'Utilizadores e perfis',novo:'Novo utilizador',vazio:'Ainda não há utilizadores.',sort:(a,b)=>(a.perfil||'').localeCompare(b.perfil||'')||(a.nome||'').localeCompare(b.nome||''),chip:'perfil',
+  cols:['nome','perfil','cargo','obras','email','telefone','estado'],
+  fields:[{k:'nome',l:'Nome',req:1,wide:1,av:'w'},{k:'foto',l:'Fotografia (opcional)',photo:'w',wide:1},{k:'perfil',l:'Perfil de acesso',opts:Object.keys(PERF)},{k:'cargo',l:'Cargo'},{k:'email',l:'Email'},{k:'telefone',l:'Telefone'},{k:'obras',l:'Obras a que tem acesso (vazio = todas)',refs:'obras',wide:1},{k:'estado',l:'Estado',opts:['Ativo','Inativo']}]},
+ relogios:{title:'Relógios de ponto',novo:'Novo relógio',fields:[{k:'nome',l:'Nome do relógio',req:1,wide:1},{k:'local',l:'Onde está instalado'},{k:'modelo',l:'Marca / modelo'},{k:'ip',l:'Endereço IP'}]}
+};
+const SC=['trabalhadores','tarefas','equipamentos','logistica','armazem','compras','relogios','ponto','rh','transferencias','requisicoes','combustivel','hst','subempreiteiros','progresso','documentos'];
+const GL=['fornecedores','armazens','stock','utilizadores'];
+const COLS=['obras','config','rubricas',...GL,...SC];
+const DEMOV=6;
+const data={};COLS.forEach(c=>data[c]={});
+const st={view:'hoje',day:today(),month:today().slice(0,7),pm:'cal',res:'',obra:'',pv:'dia',pw:'',rhGroup:false,rhF:{t:'',src:'',w:''},rhSort:'nome',rhAll:false,fl:{},rhGroupBy:'trab',all:null,allMonth:'',allBusy:false,sel:'',placing:false,vb:null,stats:{},statsAt:0,statsBusy:false};
+let db=null,dl=null,mode='loading',obrasOk=false,unsubs=[];
+try{st.user=localStorage.getItem('enerline_user')||''}catch(e){}
+
+/* ---------- dados ---------- */
+function persistLocal(){try{localStorage.setItem('enerline_obra',JSON.stringify(data))}catch(e){}}
+function fail(e){toast(e&&e.code==='invalid_argument'?'Não tem permissão para alterar os dados desta obra.':e&&e.code==='quota_exceeded'?'O armazenamento está cheio. Apague registos antigos.':'Não foi possível guardar. Tente outra vez.')}
+async function save(c,id,obj){data[c][id]=obj;render();
+  if(db){try{await db.collection(c).doc(id).set(obj)}catch(e){fail(e)}}else persistLocal()}
+async function del(c,id){delete data[c][id];render();
+  if(db){try{await db.collection(c).doc(id).delete()}catch(e){fail(e)}}else persistLocal()}
+const lost=()=>{$('#sync').textContent='Ligação aos dados perdida. Recarregue a página.'};
+const snap=(c,after)=>s=>{const m={};s.docs.forEach(x=>{m[x.id]=JSON.parse(JSON.stringify(x.data()))});data[c]=(typeof demoBusy!=='undefined'&&demoBusy&&demoMap[c])?{...demoMap[c],...m}:m;if(after)after();else render()};
+function subObra(){unsubs.forEach(u=>u());unsubs=[];SC.forEach(c=>{data[c]={};if(st.obra)unsubs.push(db.collection(c).where('obra','==',st.obra).limit(1000).onSnapshot(snap(c),lost))})}
+function setObra(id){st.obra=id||'';st.res='';st.pw='';try{localStorage.setItem('enerline_obra_sel',st.obra)}catch(e){}if(db)subObra();render()}
+async function bulk(jobs,label){let i=0,done=0,err=0;const t=$('#toast');
+  const run=async()=>{while(i<jobs.length){const j=jobs[i++];for(let a=0;;a++){try{await j();break}catch(e){if(a<5&&e&&(e.code==='resource_exhausted'||e.code==='unavailable'))await new Promise(r=>setTimeout(r,1200*(a+1)));else{err++;break}}}
+    done++;if(done%10===0){clearTimeout(toast.t);t.hidden=false;t.textContent=`${label}: ${done} de ${jobs.length}`}}};
+  await Promise.all([1,2,3,4].map(run));toast(err?`${label}: terminou com ${err} falhas.`:`${label}: concluído.`);return err}
+let demoBusy=false,demoMap={};
+const DAYC=['tarefas','logistica','armazem','ponto','combustivel','transferencias','requisicoes','hst','progresso','compras','rh','documentos'];
+async function checkDemo(force){if(!db||demoBusy||!rows('obras').some(o=>o.exemplo))return;const c=data.config.demo,td=today();
+  const full=force||!c||c.v<DEMOV;if(!full&&c.day===td)return;
+  demoBusy=true;let all=genDemo(td).filter(([k,id])=>!(k==='config'&&id==='demo'));if(!full)all=all.filter(([k])=>DAYC.includes(k));
+  const PR=['obras','armazens','fornecedores','rubricas','relogios','subempreiteiros','trabalhadores','equipamentos','ponto','tarefas'];all.sort((x,y)=>(PR.indexOf(x[0])<0?99:PR.indexOf(x[0]))-(PR.indexOf(y[0])<0?99:PR.indexOf(y[0])));
+  demoMap={};all.forEach(([k,id,o])=>{(demoMap[k]=demoMap[k]||{})[id]=o;if(data[k])data[k][id]=o});render();
+  toast('A atualizar os dados de demonstração…');
+  const er=await bulk(all.map(([k,id,o])=>()=>db.collection(k).doc(id).set(o)),'A atualizar demonstração');
+  if(!er){try{await db.collection('config').doc('demo').set({v:DEMOV,day:td,exemplo:true})}catch(e){}demoBusy=false;demoMap={}}
+  else{toast('Não foi possível gravar toda a demonstração; os dados ficam visíveis só nesta sessão.');demoBusy=true}}
+async function loadDemo(){const all=genDemo(today());
+  if(!db){all.forEach(([c,id,o])=>{data[c][id]=o});persistLocal();setObra('o1');toast('Dados de demonstração carregados.');return}
+  await bulk(all.map(([c,id,o])=>()=>db.collection(c).doc(id).set(o)),'A carregar demonstração')}
+async function delObra(id){const jobs=[];
+  SC.forEach(c=>rows(c).forEach(r=>jobs.push(()=>{delete data[c][r.id];return db?db.collection(c).doc(r.id).delete():Promise.resolve()})));
+  jobs.push(()=>{delete data.obras[id];return db?db.collection('obras').doc(id).delete():Promise.resolve()});
+  await bulk(jobs,'A apagar obra');if(!db){persistLocal();const f=rows('obras')[0];if(!f)try{localStorage.setItem('enerline_demo_off','1')}catch(e){}setObra(f?f.id:'')}}
+async function boot(){
+  const h=location.hash.slice(1);if(VIEWS.some(v=>v[0]===h))st.view=h;
+  try{st.obra=localStorage.getItem('enerline_obra_sel')||''}catch(e){}
+  render();
+  let d=null;try{if(window.claude&&window.claude.use){d=await window.claude.use('db');dl=await window.claude.use('downloads')}}catch(e){}
+  if(d){db=d;mode='db';$('#sync').textContent='Dados partilhados com a equipa';
+    db.collection('config').limit(100).onSnapshot(snap('config'),lost);
+    db.collection('rubricas').limit(1000).onSnapshot(snap('rubricas'),lost);
+    GL.forEach(c=>db.collection(c).limit(1000).onSnapshot(snap(c),lost));
+    db.collection('obras').limit(1000).onSnapshot(snap('obras',()=>{const first=!obrasOk;obrasOk=true;
+      if(!data.obras[st.obra]){const f=rows('obras')[0];setObra(f?f.id:'')}else{if(first)subObra();render()}setTimeout(checkDemo,1500)}),lost)}
+  else{mode='local';obrasOk=true;$('#sync').textContent='Dados guardados só neste browser';
+    try{const j=JSON.parse(localStorage.getItem('enerline_obra')||'{}');COLS.forEach(c=>{if(j[c])data[c]=j[c]})}catch(e){}
+    try{const dv=+localStorage.getItem('enerline_demov')||0,dd_=localStorage.getItem('enerline_demoday')||'',off=localStorage.getItem('enerline_demo_off'),has=Object.keys(data.obras).length>0;
+      if(!off&&(!has||(Object.values(data.obras).some(o=>o.exemplo)&&(dv<DEMOV||dd_!==today())))){
+        COLS.forEach(c=>Object.keys(data[c]).forEach(id=>{if(data[c][id]&&data[c][id].exemplo)delete data[c][id]}));
+        genDemo(today()).forEach(([c,id,o])=>{data[c][id]=o});if(!data.obras[st.obra])st.obra='o1';
+        localStorage.setItem('enerline_demov',String(DEMOV));localStorage.setItem('enerline_demoday',today());persistLocal()}}catch(e){}
+    if(!data.obras[st.obra]){const f=rows('obras')[0];st.obra=f?f.id:''}
+    render()}
+}
+
+/* ---------- formatação ---------- */
+const name=(c,id)=>{const o=data[c][id];return o?(o.nome||o.numero||''):''};
+const usados=(c,v)=>[].concat(v||[]).filter(i=>data[c][i]);
+function plain(f,v){
+  if(f.ref){const n=name(f.ref,v);return n||(typeof v==='string'&&/\s/.test(v)?v:'')}
+  if(f.refs)return (v||[]).map(i=>name(f.refs,i)).filter(Boolean).join(', ');
+  if(f.type==='date')return v?fdate(v):'';
+  return v??'';
+}
+const avImg=(k,r)=>`<img class="av${k==='e'?' v':''}" loading="lazy" alt="" src="${r.foto||(k==='e'?avV(r):avW(r))}">`;
+function cell(f,v,row){
+  if(f.opts)return pill(v);
+  if(f.money)return v?Number(v).toLocaleString('pt-PT')+' Kz':'—';
+  const t=plain(f,v);
+  return (f.av&&row?avImg(f.av,row):'')+(t===''?'—':esc(t))+(f.req&&row&&row.exemplo?'<span class="ex">exemplo</span>':'');
+}
+const CALC={stock:r=>({situacao:+r.qtd<=0?'Sem stock':+r.qtd<+r.minimo?'Abaixo do mínimo':'OK'}),
+ documentos:r=>{const v=r.validade,t=today();return{situacao:!v?'—':v<t?'Expirado':v<=addDay(t,30)?'Expira em 30 dias':'Válido'}},
+ progresso:r=>({pct:r.previsto?Math.round(100*(r.executado||0)/r.previsto)+' %':'—'})};
+function consumo(list){const by={};list.forEach(r=>(by[r.viatura]=by[r.viatura]||[]).push(r));
+  Object.values(by).forEach(a=>{a.sort((x,y)=>(x.km||0)-(y.km||0));a.forEach((r,i)=>{const p=a[i-1],d=p?(r.km||0)-(p.km||0):0;r.percorrido=d>0?fk(d)+' km':'—';r.kmd=d>0?d:0;r.l100=d>0?(+r.litros||0)/d*100:null;r.media=r.l100!=null?r.l100.toFixed(1).replace('.',',')+' L/100 km':'—'})});return list}
+const me=()=>st.user&&data.utilizadores[st.user];
+const perf=()=>{const u=me();return PERF[u?u.perfil:'Administrador']||PERF['Consulta (só leitura)']};
+const pwForm=id=>{const u=data.utilizadores[id];if(!u)return '';return `<form class="pwf" data-pwd="${id}"><strong>${esc(u.nome)}</strong><span class="meta">${esc(u.perfil)}</span><input type="password" name="pw" placeholder="Palavra-passe" autocomplete="off" autofocus>${st.perr?'<em class="perr">Palavra-passe errada</em>':''}<span><button class="btn" type="submit">Entrar</button> <button class="btn ghost" type="button" data-pick="">Cancelar</button></span></form>`};
+const okView=v=>{if(v==='utilizadores')return perf()===PERF['Administrador'];const p=perf();return p.v==='*'||v==='hoje'||p.v.includes(v)};
+const canEdit=()=>perf().edit!==false;
+const obraOk=id=>{const u=me();return !u||!u.obras||!u.obras.length||u.obras.includes(id)};
+const rows0=c=>Object.entries(data[c]).filter(([id,o])=>c==='obras'?obraOk(id):(c==='config'||c==='rubricas'||GL.includes(c)||o.obra===st.obra)).map(([id,o])=>({id,...o,...(CALC[c]?CALC[c](o):{})}));
+const rows=c=>{let l=rows0(c);if(c==='combustivel')consumo(l);return l.sort(S[c].sort||(()=>0))};
+const fld=(c,k)=>S[c].fields.find(f=>f.k===k);
+
+/* ---------- picagens ---------- */
+function parsePunches(txt){const out={};let total=0;
+  for(const line of txt.split(/\r?\n/)){
+    let m=line.match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})[ T]+(\d{1,2}):(\d{2})/),d;
+    if(m)d=[m[1],m[2],m[3],m[4],m[5]];
+    else{m=line.match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})[ T,;]+(\d{1,2}):(\d{2})/);if(!m)continue;d=[m[3],m[2],m[1],m[4],m[5]]}
+    const re=/(?:^|[\s,;"])(\d{1,9})(?=[\s,;"]|$)/;
+    const idm=line.slice(0,m.index).match(re)||line.slice(m.index+m[0].length).match(re);
+    if(!idm)continue;
+    const day=d[0]+'-'+p2(d[1])+'-'+p2(d[2]);
+    (out[day]=out[day]||[]).push({n:String(+idm[1]),h:p2(d[3])+':'+d[4]});total++;
+  }
+  return {days:out,total};
+}
+const EMPTY=[];
+const pdoc=day=>data.ponto[st.obra+'_'+day]||{};
+const punches=day=>pdoc(day).registos||EMPTY;
+const savePonto=(day,patch)=>save('ponto',st.obra+'_'+day,{...pdoc(day),obra:st.obra,dia:day,registos:punches(day),...patch});
+const savePunches=(day,l)=>savePonto(day,{registos:l});
+const pidx=new WeakMap();
+function pIdx(r){let m=pidx.get(r);if(!m){m={};r.forEach(p=>{(m[p.n]=m[p.n]||[]).push(p.h)});for(const k in m)m[k].sort();pidx.set(r,m)}return m}
+const pOf=day=>pIdx(punches(day));
+function ctxOf(id){const o=data.obras[id]||{};
+  if(id===st.obra||!db){const f=c=>Object.entries(data[c]).filter(([,x])=>x.obra===id).map(([k,x])=>({id:k,...x}));return{id,obra:o,w:f('trabalhadores'),rh:f('rh'),pd:day=>data.ponto[id+'_'+day]||{}}}
+  const a=(st.all||{})[id];return a?{id,obra:o,w:a.w,rh:a.rh,pd:day=>a.p[day]||{}}:null}
+const pkey=w=>w.numPonto?nn(w.numPonto):'#'+w.id;
+async function addPunches(day,list,origem){
+  const cur=punches(day).slice();let added=0;
+  for(const p of list){if(!cur.some(x=>x.n===p.n&&x.h===p.h)){cur.push({n:p.n,h:p.h,o:origem||'Manual'});added++}}
+  if(added)await savePunches(day,cur);
+  return added;
+}
+const mins=h=>{const[a,b]=h.split(':');return +a*60+ +b};
+const fh=m=>m>0?Math.floor(m/60)+'h'+p2(m%60):'';
+const cfgOf=o=>{const n=(v,d)=>v==null||v===''?d:+v;return{e:mins(o.hEntrada||'07:00'),s:mins(o.hSaida||'16:00'),p:n(o.pausa,60),t:n(o.tolerancia,10),sab:n(o.hSab,0)}};
+const cfg=()=>cfgOf(data.obras[st.obra]||{});
+/* horas de um dia: a entrada antes da hora não conta; a pausa desconta-se em dias de 6 h ou mais; extra é o que passa das horas normais */
+function calc(t,day,c){c=c||cfg();const wd=new Date(day+'T12:00').getDay(),util=wd>0&&wd<6;
+  const r={ent:t[0]||'',sai:t.length>1?t[t.length-1]:'',trab:0,norm:0,extra:0,atraso:0,cedo:0,util};
+  const base=wd===0?0:wd===6?c.sab*60:c.s-c.e-c.p;
+  if(r.sai){let a=mins(r.ent);if(util&&a<c.e)a=c.e;let m=mins(r.sai)-a;if(m>=360)m-=c.p;r.trab=Math.max(0,m);r.norm=Math.min(r.trab,base);r.extra=r.trab-r.norm;if(util&&r.extra<=c.t)r.extra=0}
+  if(r.ent&&util){const a=mins(r.ent)-c.e;if(a>c.t)r.atraso=a;if(r.sai){const e=c.s-mins(r.sai);if(e>c.t)r.cedo=e}}
+  return r}
+function sitOf(w,day,r,tem,pd){
+  if(r.ent){if(!r.sai)return day===today()?'Em obra':'Sem saída';return r.atraso?'Atraso':r.cedo?'Saída antecipada':'Completo'}
+  const j=((pd||pdoc)(day).just||{})[w.k];if(j)return j;
+  if(w.estado&&w.estado!=='Ativo')return w.estado;
+  if(!r.util)return 'Folga';
+  if(day>today())return '—';
+  return day===today()||!tem?'Sem registo':'Falta'}
+function dayRows(day){const by=pOf(day),tem=punches(day).length>0,c=cfg(),out=[],seen=new Set();
+  rows('trabalhadores').forEach(w=>{const k=pkey(w);seen.add(k);const t=by[k]||[];
+    if(!t.length&&w.estado==='Desmobilizado')return;
+    out.push({k,id:w.id,num:w.numPonto||'',nome:w.nome,estado:w.estado,t})});
+  Object.keys(by).forEach(k=>{if(!seen.has(k))out.push({k,num:k,nome:'Nº '+k+' sem trabalhador associado',t:by[k],solto:1})});
+  out.forEach(r=>{Object.assign(r,calc(r.t,day,c));r.horas=fh(r.trab);r.sit=sitOf(r,day,r,tem)});
+  return out}
+function monthRowsCtx(ctx){const[Y,M]=st.month.split('-').map(Number),n=new Date(Y,M,0).getDate(),td=today(),c=cfgOf(ctx.obra),per=[];
+  for(let d=1;d<=n;d++){const k=st.month+'-'+p2(d);if(k<=td){const reg=ctx.pd(k).registos||EMPTY;per.push({d:k,by:pIdx(reg),tem:reg.length>0})}}
+  return ctx.w.filter(w=>w.estado!=='Desmobilizado').map(w=>{const k=pkey(w),a={id:w.id,num:w.numPonto||'',nome:w.nome,dias:0,norm:0,exU:0,exF:0,nAt:0,mAt:0,faltas:0,semSaida:0,det:[]};
+    per.forEach(p=>{const r=calc(p.by[k]||[],p.d,c),s=sitOf({k,estado:w.estado},p.d,r,p.tem,ctx.pd);
+      if(r.ent){a.dias++;a.norm+=r.norm;if(r.util)a.exU+=r.extra;else a.exF+=r.extra;if(r.atraso){a.nAt++;a.mAt+=r.atraso}if(s==='Sem saída')a.semSaida++}
+      else if(s==='Falta'||s==='Falta injustificada')a.faltas++;
+      a.det.push({d:p.d,r,s})});
+    return a})}
+const monthRows=()=>monthRowsCtx(ctxOf(st.obra));
+
+
+/* ---------- dashboards ---------- */
+const fk=n=>Number(Math.round(n)).toLocaleString('pt-PT');
+const kz=n=>n>=1e6?(n/1e6).toFixed(1).replace('.',',')+' M Kz':fk(n)+' Kz';
+const cnt=(a,f)=>{const m={};a.forEach(x=>{const k=f(x)||'—';m[k]=(m[k]||0)+1});return Object.entries(m).sort((x,y)=>y[1]-x[1])};
+const sumBy=(a,f)=>a.reduce((t,x)=>t+(+f(x)||0),0);
+const tl=(v,l,tn,sm)=>`<div class="tile${tn?' t-'+tn:''}"><b${sm?' class="sm"':''}>${v}</b><span>${esc(l)}</span></div>`;
+const bars=(t,items,fmt)=>{const mx=Math.max(1,...items.map(i=>i[1]));return `<div class="dcard"><h3>${esc(t)}</h3><div class="bars">${items.length?items.map(i=>`<div class="br"><span title="${esc(i[0])}">${esc(i[0])}</span><span class="tr"><i style="width:${Math.max(2,i[1]/mx*100)}%"></i></span><b>${fmt?fmt(i[1]):i[1]}</b></div>`).join(''):'<span class="meta">Sem dados.</span>'}</div></div>`};
+const dwrap=(tiles,cards)=>`<section class="dash" aria-label="Resumo"><div class="tiles">${tiles.join('')}</div>${cards.length?`<div class="dgrid">${cards.join('')}</div>`:''}</section>`;
+const lastDays=n=>{const o=[];for(let i=n-1;i>=0;i--)o.push(addDay(today(),-i));return o};
+const sd=d=>d.slice(8)+'/'+d.slice(5,7);
+const emp=(c)=>rows(c).filter(e=>!e.estado||e.estado==='Ativo');
+const DASH={
+ utilizadores:()=>{const u=rows('utilizadores');return dwrap([tl(u.length,'Utilizadores'),tl(u.filter(x=>x.estado!=='Inativo').length,'Ativos','ok'),tl(Object.keys(PERF).length,'Perfis'),tl(u.filter(x=>!(x.obras||[]).length).length,'Com acesso a todas as obras')],[bars('Utilizadores por perfil',cnt(u,x=>x.perfil))])},
+ mapa:()=>{const o=rows('obras');return dwrap([tl(o.length,'Obras'),tl(o.filter(x=>x.estado==='Em curso').length,'Em curso','ok'),tl(o.filter(x=>x.tipo==='Subestação').length,'Subestações'),tl(o.filter(x=>x.tipo==='Linha aérea').length,'Linhas aéreas'),tl(o.filter(x=>x.tipo==='Rede de distribuição').length,'Redes MT/BT')],[bars('Obras por província',cnt(o,x=>x.provincia||x.local)),bars('Obras por tipo',cnt(o,x=>x.tipo))])},
+ tarefas:()=>{const t=rows('tarefas'),d=today(),td=t.filter(x=>x.data===d),ds=lastDays(7);return dwrap([tl(td.length,'Tarefas hoje'),tl(td.filter(x=>x.estado==='Concluída').length,'Concluídas','ok'),tl(td.filter(x=>x.estado==='Em curso').length,'Em curso','warn'),tl(td.filter(x=>x.prioridade==='Urgente').length,'Urgentes',td.some(x=>x.prioridade==='Urgente')?'bad':''),tl(new Set(td.flatMap(x=>x.responsaveis||[])).size,'Trabalhadores alocados')],[bars('Tarefas por dia (últimos 7)',ds.map(x=>[sd(x),t.filter(y=>y.data===x).length])),bars('Estado hoje',cnt(td,x=>x.estado||'Pendente'))])},
+ plano:()=>{const t=rows('tarefas'),d=today(),ds=[-2,-1,0,1,2,3,4].map(n=>addDay(d,n)),e=rows('equipamentos');return dwrap([tl(t.filter(x=>x.data>=d&&x.data<=addDay(d,6)).length,'Tarefas nos próximos 7 dias'),tl(new Set(t.filter(x=>x.data===d).flatMap(x=>x.equipamentos||[])).size,'Meios alocados hoje'),tl(e.filter(x=>x.estado==='Disponível').length,'Meios disponíveis','ok'),tl(e.filter(x=>x.estado==='Avariado'||x.estado==='Manutenção').length,'Meios parados','warn')],[bars('Carga de tarefas',ds.map(x=>[sd(x),t.filter(y=>y.data===x).length]))])},
+ progresso:()=>{const r=rows('progresso'),p=r.map(x=>x.previsto?Math.round(100*(x.executado||0)/x.previsto):0);return dwrap([tl(r.length,'Atividades medidas'),tl(p.length?Math.round(sumBy(p,x=>x)/p.length)+' %':'—','Avanço médio','ok'),tl(r.filter(x=>x.estado==='Medido'||x.estado==='Faturado').length,'Medidas / faturadas'),tl(p.filter(x=>x<40).length,'Abaixo de 40 %',p.some(x=>x<40)?'warn':'')],[bars('Avanço por atividade (%)',r.map((x,i)=>[x.atividade,p[i]]).slice(0,10),v=>v+' %'),bars('Por frente de obra',cnt(r,x=>x.frente))])},
+ trabalhadores:()=>{const r=rows('trabalhadores');return dwrap([tl(r.length,'Trabalhadores'),tl(r.filter(w=>!w.estado||w.estado==='Ativo').length,'Ativos','ok'),tl(r.filter(w=>w.estado==='Férias').length,'De férias','warn'),tl(r.filter(w=>w.estado==='Ausente').length,'Ausentes',r.some(w=>w.estado==='Ausente')?'bad':''),tl(cnt(r,w=>w.funcao).length,'Funções')],[bars('Por função',cnt(r,w=>w.funcao).slice(0,8)),bars('Por equipa',cnt(r,w=>w.equipa).slice(0,8))])},
+ ponto:()=>{const d=today(),dr=dayRows(d).filter(r=>!r.solto&&r.estado!=='Desmobilizado'),pres=dr.filter(r=>r.t.length).length,ds=lastDays(7).filter(x=>new Date(x+'T12:00').getDay()!==0);
+  return dwrap([tl(pres,'Presentes hoje','ok'),tl(dr.filter(r=>r.atraso).length,'Atrasos hoje',dr.some(r=>r.atraso)?'warn':''),tl(dr.filter(r=>r.sit==='Falta'||r.sit==='Falta injustificada').length,'Faltas hoje','bad'),tl(dr.filter(r=>r.sit==='Sem saída').length,'Sem saída'),tl(fh(sumBy(dr,r=>r.extra)),'Horas extra hoje','',1),tl(rows('relogios').length,'Terminais')],[bars('Presenças (últimos dias úteis)',ds.map(x=>[sd(x),dayRows(x).filter(r=>!r.solto&&r.t.length).length])),bars('Situação hoje',cnt(dr,r=>r.sit))])},
+ hst:()=>{const r=rows('hst'),inc=r.filter(x=>x.tipo==='Incidente').sort((a,b)=>b.data.localeCompare(a.data)),d=today(),dias=inc.length?Math.max(0,Math.round((new Date(d)-new Date(inc[0].data))/864e5)):'—';return dwrap([tl(dias,'Dias desde o último incidente',typeof dias==='number'&&dias<3?'bad':'ok'),tl(inc.length,'Incidentes',inc.length?'warn':''),tl(r.filter(x=>x.tipo==='Quase-acidente').length,'Quase-acidentes'),tl(r.filter(x=>x.estado!=='Fechado').length,'Por fechar',r.some(x=>x.estado!=='Fechado')?'warn':''),tl(r.filter(x=>x.tipo==='Formação').length,'Formações')],[bars('Por tipo',cnt(r,x=>x.tipo)),bars('Por gravidade',cnt(r,x=>x.gravidade))])},
+ documentos:()=>{const r=rows('documentos');return dwrap([tl(r.length,'Documentos'),tl(r.filter(x=>x.situacao==='Expirado').length,'Expirados',r.some(x=>x.situacao==='Expirado')?'bad':''),tl(r.filter(x=>x.situacao==='Expira em 30 dias').length,'Expiram em 30 dias','warn'),tl(r.filter(x=>x.situacao==='Válido').length,'Válidos','ok')],[bars('Expirados e a expirar por tipo',cnt(r.filter(x=>x.situacao==='Expirado'||x.situacao==='Expira em 30 dias'),x=>x.tipo).slice(0,7)),bars('Por tipo',cnt(r,x=>x.tipo).slice(0,7))])},
+ subempreiteiros:()=>{const r=rows('subempreiteiros');return dwrap([tl(r.length,'Subempreiteiros'),tl(r.filter(x=>x.estado==='Ativo').length,'Ativos','ok'),tl(sumBy(r,x=>x.trabalhadores),'Trabalhadores deles'),tl(kz(sumBy(r,x=>x.valor)),'Valor dos contratos','',1)],[bars('Valor por empresa (M Kz)',r.map(x=>[x.nome,(+x.valor||0)/1e6]).sort((a,b)=>b[1]-a[1]),v=>v.toFixed(0))])},
+ rh:()=>{const r=rows('rh'),w=rows('trabalhadores');return dwrap([tl(w.length,'Trabalhadores'),tl(r.length,'Movimentos manuais'),tl(rows('rubricas').length,'Rubricas'),tl(kz(sumBy(r,x=>x.valor)),'Valor dos movimentos','',1)],[bars('Movimentos por rubrica',cnt(r,x=>x.codigo)),bars('Por tipo',cnt(r,x=>x.tipo))])},
+ equipamentos:()=>{const r=rows('equipamentos');return dwrap([tl(r.length,'Máquinas e viaturas'),tl(r.filter(x=>x.tipo==='Viatura').length,'Viaturas'),tl(r.filter(x=>x.estado==='Disponível').length,'Disponíveis','ok'),tl(r.filter(x=>x.estado==='Em uso').length,'Em uso'),tl(r.filter(x=>x.estado==='Avariado'||x.estado==='Manutenção').length,'Parados','warn'),tl(r.filter(x=>x.proxManut&&x.proxManut<=addDay(today(),14)).length,'Manutenção em 14 dias')],[bars('Por grupo',cnt(r,x=>x.grupo)),bars('Por estado',cnt(r,x=>x.estado))])},
+ combustivel:()=>{const r=rows('combustivel'),ds=lastDays(7),w=r.filter(x=>x.l100!=null),tk=sumBy(w,x=>x.kmd),tl_=sumBy(w,x=>x.litros),med=tk?tl_/tk*100:0;
+  const pv={};w.forEach(x=>{const p=pv[x.viatura]=pv[x.viatura]||{l:0,k:0};p.l+=+x.litros||0;p.k+=x.kmd});
+  const veh=Object.entries(pv).map(([k,p])=>[name('equipamentos',k)||k,p.k?p.l/p.k*100:0]).sort((a,b)=>b[1]-a[1]);
+  return dwrap([tl(fk(sumBy(r,x=>x.litros))+' L','Litros no período','',1),tl(med?med.toFixed(1).replace('.',',')+' L/100 km':'—','Consumo médio da frota','',1),tl(fk(tk)+' km','Km percorridos','',1),tl(kz(sumBy(r,x=>x.valor)),'Custo total','',1),tl(kz(tk?sumBy(r,x=>x.valor)/tk:0)+'/km','Custo por km','',1)],[bars('Litros por dia',ds.map(x=>[sd(x),sumBy(r.filter(y=>y.data===x),y=>y.litros)]),fk),bars('Consumo médio por viatura (L/100 km) · maiores',veh.slice(0,8),v=>v.toFixed(1).replace('.',',')),bars('Consumo médio por viatura (L/100 km) · menores',veh.slice(-6).reverse(),v=>v.toFixed(1).replace('.',','))])},
+ logistica:()=>{const r=rows('logistica'),d=today(),h=r.filter(x=>x.data===d);return dwrap([tl(h.length,'Transportes hoje'),tl(h.filter(x=>x.estado==='Em trânsito').length,'Em trânsito','warn'),tl(h.filter(x=>x.estado==='Entregue').length,'Entregues','ok'),tl(r.filter(x=>x.data>d).length,'Planeados')],[bars('Por estado',cnt(r,x=>x.estado)),bars('Transportes por dia',lastDays(7).map(x=>[sd(x),r.filter(y=>y.data===x).length]))])},
+ armazem:()=>{const r=rows('armazem');return dwrap([tl(r.length,'Pedidos ao armazém'),tl(r.filter(x=>x.estado==='Pedido').length,'Por atender','warn'),tl(r.filter(x=>x.estado==='Em preparação').length,'Em preparação'),tl(r.filter(x=>x.estado==='Sem stock').length,'Sem stock',r.some(x=>x.estado==='Sem stock')?'bad':'')],[bars('Por estado',cnt(r,x=>x.estado)),bars('Artigos mais pedidos',cnt(r,x=>x.artigo).slice(0,6))])},
+ armazens:()=>{const a=rows('armazens'),st_=rows('stock'),low=st_.filter(x=>x.situacao!=='OK');return dwrap([tl(a.length,'Armazéns'),tl(a.filter(x=>x.tipo==='Central').length,'Central','ok'),tl(st_.length,'Linhas de stock'),tl(low.length,'Abaixo do mínimo',low.length?'warn':'')],[bars('Linhas de stock por armazém',cnt(st_,x=>name('armazens',x.armazem)).slice(0,8)),bars('Abaixo do mínimo por armazém',cnt(low,x=>name('armazens',x.armazem)).slice(0,8))])},
+ stock:()=>{const r=rows('stock'),low=r.filter(x=>x.situacao!=='OK'),c=r.filter(x=>x.armazem==='ac');return dwrap([tl(r.length,'Linhas de stock'),tl(c.length,'No armazém central'),tl(low.length,'Abaixo do mínimo',low.length?'warn':'ok'),tl(r.filter(x=>x.situacao==='Sem stock').length,'Sem stock',r.some(x=>x.situacao==='Sem stock')?'bad':'')],[bars('Em falta (abaixo do mínimo)',cnt(low,x=>x.artigo).slice(0,8)),bars('Linhas por armazém',cnt(r,x=>name('armazens',x.armazem)).slice(0,8))])},
+ transferencias:()=>{const r=rows('transferencias');return dwrap([tl(r.length,'Transferências'),tl(r.filter(x=>x.estado==='Pedida'||x.estado==='Aprovada').length,'Por enviar','warn'),tl(r.filter(x=>x.estado==='Em trânsito').length,'Em trânsito'),tl(r.filter(x=>x.estado==='Recebida').length,'Recebidas','ok')],[bars('Por estado',cnt(r,x=>x.estado)),bars('Por origem',cnt(r,x=>name('armazens',x.de)).slice(0,6))])},
+ requisicoes:()=>{const r=rows('requisicoes');return dwrap([tl(r.length,'Requisições'),tl(r.filter(x=>x.estado==='Pedida').length,'À espera de aprovação','warn'),tl(r.filter(x=>x.urgencia==='Urgente'&&x.estado!=='Satisfeita'&&x.estado!=='Recusada').length,'Urgentes em aberto','bad'),tl(r.filter(x=>x.estado==='Satisfeita').length,'Satisfeitas','ok')],[bars('Por estado',cnt(r,x=>x.estado)),bars('Como satisfazer',cnt(r,x=>x.destino))])},
+ compras:()=>{const r=rows('compras'),open=r.filter(x=>x.estado!=='Recebido'&&x.estado!=='Cancelado');return dwrap([tl(r.length,'Pedidos de compra'),tl(open.length,'Por receber','warn'),tl(kz(sumBy(open,x=>x.valor)),'Valor por receber','',1),tl(open.filter(x=>x.prazo&&x.prazo<today()).length,'Entrega atrasada',open.some(x=>x.prazo&&x.prazo<today())?'bad':'')],[bars('Por estado',cnt(r,x=>x.estado)),bars('Maiores fornecedores (M Kz)',Object.entries(r.reduce((m,x)=>(m[x.fornecedor]=(m[x.fornecedor]||0)+(+x.valor||0),m),{})).map(([k,v])=>[plain(fld('compras','fornecedor'),k)||'—',v/1e6]).sort((a,b)=>b[1]-a[1]).slice(0,6),v=>v.toFixed(1))])},
+ fornecedores:()=>{const r=rows('fornecedores');return dwrap([tl(r.length,'Fornecedores'),tl(r.filter(x=>x.estado==='Ativo').length,'Ativos','ok'),tl(r.filter(x=>x.avaliacao==='A').length,'Avaliação A'),tl(Math.round(sumBy(r,x=>x.prazoDias)/Math.max(1,r.length))+' d','Prazo médio','',1)],[bars('Por categoria',cnt(r,x=>x.categoria)),bars('Por avaliação',cnt(r,x=>x.avaliacao))])}
+};
+
+
+const spHtml=async()=>(await fetch('sp.html')).text();
+function vBio(){return `<div class="vh"><div><h1>Biometria facial e digital</h1><p class="sub">SmartPonto ENERLINE · demonstração com terminais, obras e colaboradores da empresa. Escolha «Registo de ponto», introduza um código (1001 a 1012) e use reconhecimento facial ou impressão digital.</p></div><div class="tools"><button class="btn ghost" data-bio="save">Descarregar SmartPonto (HTML)</button></div></div>
+ <iframe id="bio" class="bio" title="SmartPonto ENERLINE" allow="camera; geolocation; fullscreen" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-downloads allow-popups"></iframe>`}
+
+/* ---------- vistas ---------- */
+function vGeneric(c){const s=S[c],all=rows(c),fs=s.cols.map(k=>fld(c,k));
+  let extra='',chips='',rs=all;
+  if(s.chip){const cf=fld(c,s.chip),val=r=>plain(cf,r[s.chip])||'—',sel=st.fl[c],vs=cnt(all,val);
+    if(sel&&!vs.some(x=>x[0]===sel))st.fl[c]='';
+    rs=all.filter(r=>!st.fl[c]||val(r)===st.fl[c]);
+    chips=`<div class="chips"><button class="chip${!st.fl[c]?' on':''}" data-chip="${c}:*">Todos (${all.length})</button>${vs.map(x=>`<button class="chip${st.fl[c]===x[0]?' on':''}" data-chip="${c}:${esc(x[0])}">${esc(x[0])} (${x[1]})</button>`).join('')}</div>`}
+  if(c==='utilizadores')extra=`<p class="sub">Entrada com palavra-passe: na demonstração é 123 para todos os utilizadores.</p><div class="perfs">${Object.entries(PERF).map(([k,p])=>`<div><strong>${k}</strong><br><span class="meta">${p.d} ${p.edit?'Pode alterar.':'Só consulta.'}</span></div>`).join('')}</div>`;
+  if(c==='compras'){const t=rs.filter(r=>r.estado!=='Recebido'&&r.estado!=='Cancelado').reduce((a,r)=>a+(+r.valor||0),0);extra=`<p class="sub">Por receber: <strong>${t.toLocaleString('pt-PT')} Kz</strong> em ${rs.filter(r=>r.estado!=='Recebido'&&r.estado!=='Cancelado').length} pedidos.</p>`}
+  return `<div class="vh"><h1>${s.title}</h1><div class="tools"><input type="search" id="q" placeholder="Procurar" aria-label="Procurar"><button class="btn ghost" data-csv="${c}">Exportar CSV</button><button class="btn" data-new="${c}">${s.novo}</button></div></div>${extra}${chips}
+  <div class="tablewrap">${rs.length?`<table><thead><tr>${fs.map(f=>`<th class="${f.type==='number'?'num':''}">${esc(f.l.split(' (')[0])}</th>`).join('')}</tr></thead><tbody>${rs.map(r=>`<tr class="click" data-edit="${c}:${r.id}">${fs.map(f=>`<td class="${f.type==='number'?'num':''}">${cell(f,r[f.k],r)}</td>`).join('')}</tr>`).join('')}</tbody></table>`:`<div class="empty">${s.vazio} Use o botão «${s.novo}».</div>`}</div>`}
+
+function dayNav(){return `<div class="daynav"><button class="btn ghost" data-day="-1" aria-label="Dia anterior">‹</button><input type="date" id="dayin" value="${st.day}" aria-label="Dia"><button class="btn ghost" data-day="1" aria-label="Dia seguinte">›</button><button class="btn ghost" data-day="0">Hoje</button></div>`}
+function taskCard(t){
+  const f=k=>plain(fld('tarefas',k),t[k]);
+  return `<div class="card click" data-edit="tarefas:${t.id}"><div class="top"><strong>${t.hora?esc(t.hora)+' · ':''}${esc(t.titulo)}${t.exemplo?'<span class="ex">exemplo</span>':''}</strong><button class="pill ${tone(t.estado)}" data-cycle="${t.id}" title="Mudar estado">${esc(t.estado||'Pendente')}</button></div>
+  <div class="meta">${t.prioridade==='Urgente'?pill('Urgente')+' ':''}${esc(t.frente||'Sem local definido')}</div>
+  <div class="meta">Equipa: ${esc(f('responsaveis')||'por atribuir')}</div>${f('equipamentos')?`<div class="meta">Meios: ${esc(f('equipamentos'))}</div>`:''}</div>`}
+const dayTasks=d=>rows('tarefas').filter(t=>t.data===d);
+function vTarefas(){const ts=dayTasks(st.day),ws=rows('trabalhadores').filter(w=>!w.estado||w.estado==='Ativo');
+  return `<div class="vh"><h1>Tarefas diárias</h1><div class="tools">${dayNav()}<button class="btn ghost" data-copy="1">Copiar distribuição</button><button class="btn" data-new="tarefas">Nova tarefa</button></div></div>
+  <p class="sub">${longDay(st.day)} · ${ts.length} tarefas, ${ts.filter(t=>t.estado==='Concluída').length} concluídas</p>
+  <div class="cols"><div class="stack"><h2>Tarefas do dia</h2>${ts.length?ts.map(taskCard).join(''):'<div class="card empty">Nenhuma tarefa distribuída para este dia.</div>'}</div>
+  <div class="stack"><h2>Quem faz o quê</h2><div class="list">${ws.length?ws.map(w=>{const mine=ts.filter(t=>(t.responsaveis||[]).includes(w.id));return `<div><span>${avImg('w',w)}<strong>${esc(w.nome)}</strong><br><span class="meta">${mine.length?mine.map(t=>esc(t.titulo)).join(' · '):esc(w.funcao||'')}</span></span>${mine.length?`<span class="pill">${mine.length}</span>`:'<span class="pill warn">Sem tarefa</span>'}</div>`}).join(''):'<div class="empty">Registe trabalhadores para os distribuir.</div>'}</div></div></div>`}
+
+function vHoje(){const d=today(),ts=dayTasks(d),ws=rows('trabalhadores').filter(w=>!w.estado||w.estado==='Ativo'),eq=rows('equipamentos');
+  const pres=dayRows(d).filter(r=>r.t.length&&!r.solto).length;
+  const parados=eq.filter(e=>e.estado==='Avariado'||e.estado==='Manutenção');
+  const comp=rows('compras').filter(c=>c.estado!=='Recebido'),ent=rows('logistica').filter(l=>l.data===d&&l.estado!=='Entregue');
+  const al=[];
+  ts.filter(t=>t.prioridade==='Urgente'&&t.estado!=='Concluída').forEach(t=>al.push([`Tarefa urgente por concluir: ${t.titulo}`,'tarefas','bad','Urgente']));
+  eq.filter(e=>e.estado==='Avariado').forEach(e=>al.push([`${e.nome} está avariado`,'equipamentos','bad','Avariado']));
+  eq.filter(e=>e.proxManut&&e.proxManut<=d&&e.estado!=='Manutenção').forEach(e=>al.push([`${e.nome}: manutenção prevista para ${fdate(e.proxManut)}`,'equipamentos','warn','Manutenção']));
+  const sem=ws.filter(w=>!ts.some(t=>(t.responsaveis||[]).includes(w.id)));
+  if(ws.length&&sem.length)al.push([`${sem.length} trabalhadores sem tarefa hoje: ${sem.slice(0,4).map(w=>w.nome).join(', ')}${sem.length>4?'…':''}`,'tarefas','warn','Sem tarefa']);
+  const lt=dayRows(d).filter(r=>r.atraso).length;if(lt)al.push([`${lt} atrasos na entrada hoje`,'ponto','warn','Atraso']);
+  rows('armazem').filter(m=>m.estado==='Sem stock').forEach(m=>al.push([`Sem stock no armazém: ${m.artigo}`,'armazem','bad','Sem stock']));
+  rows('compras').filter(c=>c.estado==='Pedido').forEach(c=>al.push([`Compra à espera de aprovação: ${c.artigo}`,'compras','warn','Pedido']));
+  rows('documentos').filter(x=>x.validade&&x.validade<d).slice(0,3).forEach(x=>al.push([`Documento expirado: ${x.tipo} (${plain(fld('documentos','trabalhador'),x.trabalhador)||plain(fld('documentos','equipamento'),x.equipamento)||'—'})`,'documentos','bad','Expirado']));
+  Object.values(data.stock).filter(x=>x.obra===st.obra&&+x.qtd<+x.minimo).slice(0,3).forEach(x=>al.push([`Stock abaixo do mínimo: ${x.artigo}`,'stock','warn','Stock']));
+  rows('requisicoes').filter(x=>x.urgencia==='Urgente'&&x.estado==='Pedida').slice(0,3).forEach(x=>al.push([`Requisição urgente: ${x.artigo}`,'requisicoes','warn','Urgente']));
+  rows('hst').filter(x=>x.estado==='Aberto').slice(0,2).forEach(x=>al.push([`HST em aberto: ${x.descricao}`,'hst','warn','Aberto']));
+  const tile=(v,n,sub,l)=>`<a class="tile" href="#${v}" data-nav="${v}"><b>${n}${sub?`<i> / ${sub}</i>`:''}</b><span>${l}</span></a>`;
+  const obs=rows('obras'),cur=data.obras[st.obra];
+  const head=`<div class="vh"><div><h1>Obra hoje</h1><p class="sub">${longDay(d)}</p></div><div class="tools">${db&&obs.some(o=>o.exemplo)?'<button class="btn ghost" data-demoupd="1">Atualizar demonstração</button>':''}<button class="btn ghost" data-new="obras">Nova obra</button>${cur?'<button class="btn" data-new="tarefas">Nova tarefa</button>':''}</div></div>`;
+  if(!obrasOk)return head+'<div class="card empty">A carregar as obras…</div>';
+  if(!obs.length)return head+`<div class="card empty">Ainda não há obras. Crie a primeira com «Nova obra», ou carregue dados simulados de 7 obras (Luanda, Bengo, Cuanza Sul, Cabinda, Lubango, Menongue e Huambo) para experimentar.<div><button class="btn" data-demo="1">Carregar dados de demonstração</button></div></div>`;
+  const pick=`<div class="obras">${obs.map(o=>`<button class="ob${o.id===st.obra?' on':''}" data-obra="${o.id}"><strong>${esc(o.nome)}</strong><span class="meta">${esc([o.tipo,o.local].filter(Boolean).join(' · '))}</span><span>${pill(o.estado)}${o.exemplo?'<span class="ex">demonstração</span>':''}</span></button>`).join('')}</div>`;
+  if(!cur)return head+pick;
+  return head+pick+`<p class="sub">${esc([cur.cliente,cur.inicio?'Início '+fdate(cur.inicio):'',cur.fim?'Fim previsto '+fdate(cur.fim):''].filter(Boolean).join(' · '))} · <a href="#hoje" data-edit="obras:${st.obra}" style="color:var(--brand-ink)">Editar obra</a></p>
+  <div class="tiles">${tile('ponto',pres,ws.length,'Presentes')}${tile('tarefas',ts.filter(t=>t.estado==='Concluída').length,ts.length,'Tarefas concluídas')}${tile('equipamentos',parados.length,eq.length,'Meios parados')}${tile('logistica',ent.length,'','Transportes por entregar')}${tile('armazem',rows('armazem').filter(m=>m.estado!=='Entregue').length,'','Pedidos ao armazém')}${tile('compras',comp.length,'','Compras por receber')}</div>
+  <div class="cols"><div class="stack"><h2>Tarefas de hoje</h2>${ts.length?ts.map(taskCard).join(''):'<div class="card empty">Ainda não há tarefas distribuídas para hoje.</div>'}</div>
+  <div class="stack"><h2>A precisar de atenção</h2><div class="list">${al.length?al.slice(0,14).map(a=>`<div><span><a href="#${a[1]}" data-nav="${a[1]}" style="color:inherit">${esc(a[0])}</a></span><span class="pill ${a[2]}">${a[3]}</span></div>`).join('')+(al.length>14?`<div><span class="meta">e mais ${al.length-14}</span></div>`:''):'<div class="empty">Nada pendente.</div>'}</div></div></div>`}
+
+function vPonto(){const c=cfg(),rel=rows('relogios'),o=data.obras[st.obra]||{};
+  const seg=`<div class="seg">${[['dia','Dia'],['mes','Mapa mensal']].map(x=>`<button class="${st.pv===x[0]?'on':''}" data-pv="${x[0]}">${x[1]}</button>`).join('')}</div>`;
+  const hor=`<p class="sub">Horário da obra: ${esc(o.hEntrada||'07:00')} às ${esc(o.hSaida||'16:00')}, pausa de ${c.p} min, tolerância de ${c.t} min, ${c.sab?c.sab+' h normais ao sábado':'sábado e domingo contam como horas extra'}. <a href="#ponto" data-edit="obras:${st.obra}" style="color:var(--brand-ink)">Alterar horário</a></p>`;
+  const tile=(n,l)=>`<div class="tile"><b>${n}</b><span>${l}</span></div>`;
+  let tools,body;
+  if(st.pv==='mes'){const ms=monthRows(),[Y,M]=st.month.split('-').map(Number),lab=new Date(Y,M-1,1).toLocaleDateString('pt-PT',{month:'long',year:'numeric'});
+    const sum=k=>ms.reduce((a,r)=>a+r[k],0),w=ms.find(r=>r.id===st.pw);
+    tools=`<div class="daynav"><button class="btn ghost" data-month="-1" aria-label="Mês anterior">‹</button><strong class="mlab">${esc(lab)}</strong><button class="btn ghost" data-month="1" aria-label="Mês seguinte">›</button><button class="btn ghost" data-month="0">Este mês</button></div><button class="btn ghost" data-csv="pontomes">Exportar CSV</button>`;
+    body=`<div class="tiles">${tile(fh(sum('norm'))||'0h','Horas normais')}${tile(fh(sum('exU'))||'0h','Extra em dias úteis')}${tile(fh(sum('exF'))||'0h','Extra ao sábado e domingo')}${tile(sum('nAt'),'Atrasos')}${tile(sum('faltas'),'Faltas')}${tile(sum('semSaida'),'Dias sem saída')}</div>
+    <input type="search" id="q" placeholder="Procurar trabalhador" aria-label="Procurar trabalhador" style="align-self:flex-start">
+    <div class="tablewrap">${ms.length?`<table><thead><tr><th>Nº</th><th>Trabalhador</th><th class="num">Dias</th><th class="num">Normais</th><th class="num">Extra dias úteis</th><th class="num">Extra sáb. e dom.</th><th class="num">Total extra</th><th class="num">Atrasos</th><th class="num">Min. de atraso</th><th class="num">Faltas</th><th class="num">Sem saída</th></tr></thead><tbody>${ms.map(r=>`<tr class="click" data-pw="${r.id}"><td>${esc(r.num||'—')}</td><td>${esc(r.nome)}</td><td class="num">${r.dias}</td><td class="num">${fh(r.norm)||'—'}</td><td class="num">${fh(r.exU)||'—'}</td><td class="num">${fh(r.exF)||'—'}</td><td class="num"><strong>${fh(r.exU+r.exF)||'—'}</strong></td><td class="num">${r.nAt||'—'}</td><td class="num">${r.mAt||'—'}</td><td class="num">${r.faltas||'—'}</td><td class="num">${r.semSaida||'—'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Registe trabalhadores para ver o mapa mensal.</div>'}</div>
+    <p class="help">Clique num trabalhador para ver a folha de ponto dia a dia. As faltas só contam em dias úteis para os quais já há picagens importadas.</p>`+
+    (w?`<h2 id="folha">Folha de ponto de ${esc(w.nome)}</h2><div class="tablewrap"><table><thead><tr><th>Dia</th><th>Entrada</th><th>Saída</th><th class="num">Trabalhado</th><th class="num">Normais</th><th class="num">Extra</th><th class="num">Atraso</th><th>Situação</th></tr></thead><tbody>${w.det.map(x=>`<tr class="click" data-goponto="${x.d}"><td>${fdate(x.d)} ${'DSTQQSS'[new Date(x.d+'T12:00').getDay()]}</td><td>${x.r.ent||'—'}</td><td>${x.r.sai||'—'}</td><td class="num">${fh(x.r.trab)||'—'}</td><td class="num">${fh(x.r.norm)||'—'}</td><td class="num">${fh(x.r.extra)||'—'}</td><td class="num">${x.r.atraso?x.r.atraso+' min':'—'}</td><td>${pill(x.s)}</td></tr>`).join('')}</tbody></table></div>`:'')}
+  else{const rs=dayRows(st.day),ex=rs.reduce((a,r)=>a+r.extra,0);
+    tools=`${dayNav()}<button class="btn ghost" data-csv="ponto">Exportar CSV</button><button class="btn ghost" data-punch="1">Registar picagem</button><button class="btn ghost" data-nav="biometria">Biometria facial e digital</button><button class="btn" data-import="1">Importar ficheiro do relógio</button>`;
+    body=`<p class="sub">${longDay(st.day)}</p><div class="tiles">${tile(rs.filter(r=>r.t.length&&!r.solto).length,'Presentes')}${tile(rs.filter(r=>r.atraso).length,'Atrasos')}${tile(rs.filter(r=>r.cedo).length,'Saídas antecipadas')}${tile(rs.filter(r=>r.sit==='Falta'||r.sit==='Sem registo'||r.sit==='Falta injustificada').length,'Faltas ou sem registo')}${tile(fh(ex)||'0h','Horas extra do dia')}</div>
+    <input type="search" id="q" placeholder="Procurar trabalhador" aria-label="Procurar trabalhador" style="align-self:flex-start">
+    <div class="tablewrap">${rs.length?`<table><thead><tr><th>Nº</th><th>Trabalhador</th><th>Entrada</th><th>Saída</th><th class="num">Trabalhado</th><th class="num">Normais</th><th class="num">Extra</th><th class="num">Atraso</th><th>Picagens</th><th>Situação</th></tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(r.num||'—')}</td><td>${esc(r.nome)}</td><td>${r.ent||'—'}</td><td>${r.sai||'—'}</td><td class="num">${r.horas||'—'}</td><td class="num">${fh(r.norm)||'—'}</td><td class="num">${r.extra?'<strong>'+fh(r.extra)+'</strong>':'—'}</td><td class="num">${r.atraso?r.atraso+' min':'—'}</td><td>${r.t.map(h=>`<button class="chip" data-danger data-delp="${esc(r.k)}|${h}" title="Apagar picagem">${h}</button>`).join('')||'—'}</td><td>${r.t.length||r.solto?pill(r.sit):`<button class="pill ${tone(r.sit)}" data-just="${esc(r.k)}" title="Justificar ausência">${esc(r.sit)}</button>`}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Registe trabalhadores (com o número que têm no relógio) para ver as presenças.</div>'}</div>
+    <p class="help">Clique na situação de quem não picou para justificar a ausência (férias, falta justificada, formação…). Clique numa picagem para a apagar.</p>`}
+  return `<div class="vh"><h1>Relógios de ponto</h1><div class="tools">${tools}</div></div>${seg}${hor}${body}
+  <div class="vh"><h2>Relógios instalados</h2><button class="btn ghost" data-new="relogios">Novo relógio</button></div>
+  <div class="list">${rel.length?rel.map(r=>`<div class="click" data-edit="relogios:${r.id}" style="cursor:pointer"><span><strong>${esc(r.nome)}</strong>${r.exemplo?'<span class="ex">exemplo</span>':''}<br><span class="meta">${esc([r.local,r.modelo,r.ip].filter(Boolean).join(' · '))}</span></span></div>`).join(''):'<div class="empty">Nenhum relógio registado.</div>'}</div>
+  <p class="help">Para trazer as picagens, exporte o ficheiro de registos do relógio (pen USB ou o software do relógio, em CSV, TXT ou attlog.dat) e use «Importar ficheiro do relógio». Cada linha precisa do número do trabalhador e da data e hora. O número tem de ser igual ao «Nº no relógio de ponto» da ficha do trabalhador.</p>`}
+
+/* ---------- planeamento: tudo ligado por dia ---------- */
+function events(){const ev=[];
+  rows('tarefas').forEach(t=>{if(t.data)ev.push({day:t.data,hora:t.hora||'',tipo:'Tarefa',titulo:t.titulo,local:t.frente||'',ws:t.responsaveis||[],es:t.equipamentos||[],estado:t.estado||'Pendente',ref:'tarefas:'+t.id})});
+  rows('logistica').forEach(l=>{if(l.data)ev.push({day:l.data,hora:'',tipo:'Transporte',titulo:l.descricao,local:[l.origem,l.destino].filter(Boolean).join(' → '),ws:l.motorista?[l.motorista]:[],es:l.viatura?[l.viatura]:[],estado:l.estado||'Planeado',ref:'logistica:'+l.id})});
+  rows('armazem').forEach(m=>{if(m.data)ev.push({day:m.data,hora:'',tipo:'Pedido ao armazém',titulo:m.artigo+(m.qtd?' ('+m.qtd+' '+(m.unidade||'')+')':''),local:m.frente||'',ws:m.pedidoPor?[m.pedidoPor]:[],es:[],estado:m.estado||'Pedido',ref:'armazem:'+m.id})});
+  return ev.sort((a,b)=>(a.day+a.hora).localeCompare(b.day+b.hora))}
+const names=(c,ids)=>ids.map(i=>name(c,i)).filter(Boolean).join(', ');
+function punchOf(id,day){const w=data.trabalhadores[id];if(!w)return'';const t=pOf(day)[pkey({...w,id})]||[];
+  return !t.length?'':t.length>1?t[0]+' – '+t[t.length-1]:t[0]+' (sem saída)'}
+function fichaRows(){const[c,id]=st.res.split(':');if(!id||!data[c]||!data[c][id])return null;const isW=c==='trabalhadores';
+  const ev=events().filter(e=>(isW?e.ws:e.es).includes(id)).reverse();
+  return {c,id,isW,ev,head:isW?['Dia','Tipo','Tarefa','Onde esteve','O que usou','Com quem','Ponto','Estado']:['Dia','Tipo','Tarefa','Onde esteve','Quem usou','Estado'],
+    line:e=>isW?[fdate(e.day),e.tipo,e.titulo,e.local,names('equipamentos',e.es),names('trabalhadores',e.ws.filter(x=>x!==id)),punchOf(id,e.day),e.estado]:[fdate(e.day),e.tipo,e.titulo,e.local,names('trabalhadores',e.ws),e.estado]}}
+function vPlano(){const ev=events(),[Y,M]=st.month.split('-').map(Number),n=new Date(Y,M,0).getDate(),td=today();
+  const lab=new Date(Y,M-1,1).toLocaleDateString('pt-PT',{month:'long',year:'numeric'});
+  const dk=d=>st.month+'-'+p2(d),byDay={};ev.filter(e=>e.tipo!=='Pedido ao armazém').forEach(e=>{(byDay[e.day]=byDay[e.day]||[]).push(e)});
+  const seg=[['cal','Calendário'],['trabalhadores','Mapa dos trabalhadores'],['viaturas','Mapa das viaturas'],['maquinas','Mapa das máquinas']];
+  let body;
+  if(st.pm==='cal'){const off=(new Date(Y,M-1,1).getDay()+6)%7;let cells='';
+    for(let i=0;i<off;i++)cells+='<div class="cd off"></div>';
+    for(let d=1;d<=n;d++){const k=dk(d),l=byDay[k]||[];
+      cells+=`<div class="cd${k===td?' now':''}" data-goday="${k}"><b>${d}</b>${l.slice(0,3).map(e=>`<span class="ce ${tone(e.estado)}">${e.tipo==='Transporte'?'⛟ ':''}${esc(e.titulo)}</span>`).join('')}${l.length>3?`<span class="meta">+${l.length-3} mais</span>`:''}</div>`}
+    body=`<div class="tablewrap"><div class="cal">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(x=>`<div class="ch">${x}</div>`).join('')}${cells}</div></div><p class="help">Clique num dia para ver e distribuir as tarefas desse dia.</p>`}
+  else{const isW=st.pm==='trabalhadores',c=isW?'trabalhadores':'equipamentos',rs=rows(c).filter(r=>isW?r.estado!=='Desmobilizado':r.tipo===(st.pm==='viaturas'?'Viatura':'Máquina'));let hd='';
+    for(let d=1;d<=n;d++){const wd=new Date(Y,M-1,d).getDay();hd+=`<th class="uc${wd===0||wd===6?' we':''}${dk(d)===td?' now':''}">${d}<br>${'DSTQQSS'[wd]}</th>`}
+    body=`<input type="search" id="q" placeholder="Procurar no mapa" aria-label="Procurar no mapa" style="align-self:flex-start"><div class="tablewrap"><table class="umap"><thead><tr><th class="rn">${isW?'Trabalhador':st.pm==='viaturas'?'Viatura':'Máquina'}</th>${hd}<th class="num">Dias</th></tr></thead><tbody>${rs.length?rs.map(r=>{let tds='',dias=0;
+      for(let d=1;d<=n;d++){const k=dk(d),wd=new Date(Y,M-1,d).getDay(),l=(byDay[k]||[]).filter(e=>(c==='trabalhadores'?e.ws:e.es).includes(r.id));
+        const pres=c==='trabalhadores'&&punchOf(r.id,k);if(l.length)dias++;
+        tds+=`<td class="uc${wd===0||wd===6?' we':''}${l.length?' on':''}${pres?' pres':''}" data-goday="${k}" title="${esc(l.map(e=>e.titulo+(e.local?' @ '+e.local:'')).join(' | ')+(pres?' · Ponto: '+pres:''))}">${l.length||(pres?'·':'')}</td>`}
+      return `<tr><td class="rn"><a href="#plano" data-res="${c}:${r.id}">${esc(r.nome)}</a></td>${tds}<td class="num">${dias}</td></tr>`}).join(''):`<tr><td class="empty" colspan="${n+2}">Nada registado ainda.</td></tr>`}</tbody></table></div>
+    <p class="help">O número é a quantidade de tarefas e transportes nesse dia.${c==='trabalhadores'?' O traço verde por baixo indica que há picagem no relógio de ponto.':''} Clique numa célula para abrir o dia, ou no nome para ver a ficha de uso.</p>`}
+  const opt=c=>rows(c).map(r=>`<option value="${c}:${r.id}"${st.res===c+':'+r.id?' selected':''}>${esc(r.nome)}</option>`).join('');
+  const f=fichaRows();let ficha='<div class="card empty">Escolha um trabalhador ou um equipamento para ver onde esteve, que tarefas fez e o que usou.</div>';
+  if(f){const o=data[f.c][f.id],dias=new Set(f.ev.map(e=>e.day)).size,locs=[...new Set(f.ev.map(e=>e.local).filter(Boolean))];
+    ficha=`<p class="sub"><strong>${esc(o.nome)}</strong>${o.funcao||o.tipo?' · '+esc(o.funcao||o.tipo):''} · ${dias} dias com trabalho · ${f.ev.filter(e=>e.tipo==='Tarefa').length} tarefas · ${f.ev.filter(e=>e.tipo==='Transporte').length} transportes${f.isW?' · '+f.ev.filter(e=>e.tipo==='Pedido ao armazém').length+' pedidos ao armazém':''}${locs.length?' · Locais: '+esc(locs.slice(0,4).join('; '))+(locs.length>4?'…':''):''}</p>
+    <div class="tablewrap">${f.ev.length?`<table><thead><tr>${f.head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${f.ev.map(e=>{const l=f.line(e);return `<tr class="click" data-edit="${e.ref}">${l.map((v,i)=>`<td>${i===l.length-1?pill(v):esc(v||'—')}</td>`).join('')}</tr>`}).join('')}</tbody></table>`:'<div class="empty">Sem tarefas nem transportes registados.</div>'}</div>`}
+  return `<div class="vh"><h1>Planeamento</h1><div class="tools"><div class="daynav"><button class="btn ghost" data-month="-1" aria-label="Mês anterior">‹</button><strong class="mlab">${esc(lab)}</strong><button class="btn ghost" data-month="1" aria-label="Mês seguinte">›</button><button class="btn ghost" data-month="0">Este mês</button></div><button class="btn" data-new="tarefas">Nova tarefa</button></div></div>
+  <div class="seg">${seg.map(s=>`<button class="${st.pm===s[0]?'on':''}" data-pm="${s[0]}">${s[1]}</button>`).join('')}</div>${body}
+  <div class="vh"><h2>Ficha de uso</h2><div class="tools"><select id="ressel" aria-label="Trabalhador ou equipamento"><option value="">Escolher…</option><optgroup label="Trabalhadores">${opt('trabalhadores')}</optgroup><optgroup label="Máquinas e viaturas">${opt('equipamentos')}</optgroup></select>${f?'<button class="btn ghost" data-csv="ficha">Exportar CSV</button>':''}</div></div>${ficha}`}
+
+/* ---------- RH · exportação para o Cegid Primavera ---------- */
+const PH=['Tipo Alteração','Código','Funcionário','Tipo Proc.','Data','Qtd.','Valor','Observações','Moeda'];
+const pcfg=()=>data.config.primavera||{};
+const rubOf=x=>x?(data.rubricas[x]||Object.values(data.rubricas).find(r=>r.codigo===x)||null):null;
+const TIPO_RB={'R':'R','D':'D','F':'F','H':'H'};
+function valorDe(rb,w,q){if(!rb||q===''||q==null||rb.calculo==='Sem valor'||!rb.calculo)return '';const cf=pcfg(),hm=+cf.horasMes||176,dm=+cf.diasMes||22,v=+rb.valor||0,venc=+((w&&w.vencimento)||cf.vencBase||0);
+  if(rb.calculo==='Valor fixo')return v;if(rb.calculo==='Valor unitário × quantidade')return +(v*q).toFixed(2);
+  if(!venc)return '';if(rb.calculo==='% do valor-hora × horas')return +(venc/hm*v/100*q).toFixed(2);if(rb.calculo==='% do valor-dia × dias')return +(venc/dm*v/100*q).toFixed(2);return ''}
+const codePrim=w=>w?(w.codPrim||String(w.numPonto||'').padStart(4,'0')):'';
+const mesLabel=m=>{const[Y,M]=m.split('-').map(Number);return new Date(Y,M-1,1).toLocaleDateString('pt-PT',{month:'long',year:'numeric'})};
+function rhLinesCtx(ctx){const cf=pcfg(),m=st.month,[Y,M]=m.split('-').map(Number),last=m+'-'+p2(new Date(Y,M,0).getDate()),L=[],W={};ctx.w.forEach(w=>W[w.id]=w);const ob=ctx.obra.nome||'';
+  const RF=rubOf(cf.codFalta),RH=rubOf(cf.codHExtra),RW=rubOf(cf.codHExtraFDS)||RH;
+  const add=o=>{const w=W[o.wid];L.push({p:cf.tipoProc||'V',m:cf.moeda||'AKZ',q:'',v:valorDe(o.rb,w,o.q),c:o.rb?o.rb.codigo:'',auto:true,ob,oid:ctx.id,...o})};
+  monthRowsCtx(ctx).forEach(a=>{const w=W[a.id],f=codePrim(w);
+    if(st.rhGroup){if(a.faltas)add({t:'F',rb:RF,wid:a.id,f,n:a.nome,d:last,q:a.faltas,o:'Faltas de '+mesLabel(m)});
+      if(a.exU)add({t:'H',rb:RH,wid:a.id,f,n:a.nome,d:last,q:+(a.exU/60).toFixed(2),o:'Horas extra em dias úteis, '+mesLabel(m)});
+      if(a.exF)add({t:'H',rb:RW,wid:a.id,f,n:a.nome,d:last,q:+(a.exF/60).toFixed(2),o:'Horas extra ao sábado e domingo, '+mesLabel(m)})}
+    else a.det.forEach(x=>{if(x.s==='Falta'||x.s==='Falta injustificada')add({t:'F',rb:RF,wid:a.id,f,n:a.nome,d:x.d,q:1,o:x.s});
+      if(x.r.extra)add({t:'H',rb:x.r.util?RH:RW,wid:a.id,f,n:a.nome,d:x.d,q:+(x.r.extra/60).toFixed(2),o:`Horas extra ${x.r.ent}–${x.r.sai}${x.r.util?'':' (sábado/domingo)'}`})})});
+  ctx.rh.filter(r=>(r.data||'').startsWith(m)).forEach(r=>{const w=W[r.trab],rb=rubOf(r.codigo),q=r.qtd==null?'':r.qtd;L.push({t:(rb&&rb.tipo?rb.tipo:(r.tipo||'R'))[0],c:rb?rb.codigo:(r.codigo||''),f:codePrim(w),n:w?w.nome:'',p:r.tipoProc||cf.tipoProc||'V',d:r.data,q,v:r.valor==null||r.valor===''?valorDe(rb,w,q):r.valor,o:r.obs||'',m:cf.moeda||'AKZ',id:r.id,ob,oid:ctx.id})});
+  return L}
+function rhLines(){const ids=st.rhAll?rows('obras').map(o=>o.id):[st.obra],L=[];ids.forEach(id=>{const c=ctxOf(id);if(c)L.push(...rhLinesCtx(c))});return L}
+async function loadAll(){if(st.allBusy||!db)return;st.allBusy=true;const m=st.month,all={};
+  try{for(const o of rows('obras')){if(o.id===st.obra)continue;
+    const q=async(c,f)=>{let r=db.collection(c).where('obra','==',o.id);if(f)r=f(r);return (await r.limit(1000).get()).docs.map(d=>({id:d.id,...d.data()}))};
+    const[w,rh,p]=await Promise.all([q('trabalhadores'),q('rh'),q('ponto',r=>r.where('dia','>=',m+'-01').where('dia','<=',m+'-31'))]);
+    const pm={};p.forEach(d=>{pm[d.dia]=d});all[o.id]={w,rh,p:pm}}}catch(e){toast('Não foi possível carregar as outras obras.')}
+  st.all=all;st.allMonth=m;st.allBusy=false;if(st.view==='rh')render()}
+function rhView(){const F=st.rhF,k=st.rhSort,gb=st.rhGroupBy,key=l=>(gb==='obra'?l.ob+'|':'')+(gb!=='none'?l.n.toLowerCase()+'|':'')+(k==='data'?l.d+l.n+l.t:k==='cod'?l.f+l.d+l.t:l.n.toLowerCase()+l.d+l.t);
+  return rhLines().filter(l=>(!F.t||l.t===F.t)&&(!F.src||(F.src==='auto')===!!l.auto)&&(!F.w||l.n===F.w)).sort((a,b)=>key(a).localeCompare(key(b),'pt'))}
+/* O Excel sai do modelo original (Exemplo_Alteracoes_Mensais_Primavera.xlsx) embebido na página: mantém estilos, larguras, filtro, validações e as linhas alternadas; só as linhas de dados são substituídas. */
+let TPLB=null;const getTpl=async()=>TPLB||(TPLB=new Uint8Array(await (await fetch('tpl.xlsx')).arrayBuffer()));
+async function buildXlsx(lines){const zip=await window.JSZip.loadAsync(await getTpl());
+  const path='xl/worksheets/sheet1.xml';let xml=await zip.file(path).async('string');
+  const x=v=>String(v).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])),EV=[6,7,7,6,8,14,9,6,6],OD=[10,11,11,10,12,15,13,10,6],CL='ABCDEFGHI';
+  const body=lines.map((l,i)=>{const r=i+2,S=i%2?OD:EV,[y,m,d]=l.d.split('-').map(Number),vals=[l.t,l.c,l.f,l.p,(Date.UTC(y,m-1,d)-Date.UTC(1899,11,30))/864e5,l.q,l.v,l.o,l.m];
+    return `<row r="${r}" spans="1:9" ht="25.05" customHeight="1">`+vals.map((v,k)=>{const ref=CL[k]+r,st=S[k];if(v===''||v==null)return `<c r="${ref}" s="${st}"/>`;return typeof v==='number'?`<c r="${ref}" s="${st}"><v>${v}</v></c>`:`<c r="${ref}" s="${st}" t="inlineStr"><is><t>${x(v)}</t></is></c>`}).join('')+'</row>'}).join('');
+  const last=lines.length+1;
+  xml=xml.replace(/<row r="2"[\s\S]*<\/sheetData>/,body+'</sheetData>').replace(/<dimension ref="[^"]*"\/>/,`<dimension ref="A1:I${last}"/>`).replace(/<autoFilter ref="[^"]*"/,`<autoFilter ref="A1:I${last}"`);
+  zip.file(path,xml);return zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'})}
+function buildPdf(J,lines,meta){const doc=new J.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const nf=v=>v===''||v==null?'':Number(v).toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2});
+  doc.setFontSize(14);doc.text('Alterações mensais · Cegid Primavera',14,14);doc.setFontSize(10);doc.setTextColor(90);doc.text(`${st.rhAll?'Todas as obras':meta.obra} · ${meta.mes} · gerado em ${meta.gerado}`,14,20);doc.setTextColor(0);
+  const body=[];let go='',gn='';const gb=st.rhGroupBy;
+  lines.forEach(l=>{if(gb==='obra'&&l.ob!==go){go=l.ob;gn='';body.push([{content:'Obra: '+go,colSpan:9,styles:{fontStyle:'bold',fillColor:[214,228,196]}}])}
+    if(gb!=='none'&&l.n!==gn){gn=l.n;body.push([{content:gn+' · '+l.f,colSpan:9,styles:{fontStyle:'bold',fillColor:[237,241,232]}}])}
+    body.push([l.t,l.c,l.f,l.p,fdate(l.d),nf(l.q),nf(l.v),l.o,l.m])});
+  doc.autoTable({startY:25,head:[PH],body,styles:{fontSize:8,cellPadding:1.5},headStyles:{fillColor:[23,54,93]},columnStyles:{5:{halign:'right'},6:{halign:'right'},7:{cellWidth:90}}});
+  doc.setFontSize(9);doc.text(`${lines.length} movimentos · ${meta.faltas} faltas · ${meta.he} horas extra · ${meta.manuais} movimentos manuais`,14,doc.lastAutoTable.finalY+7);
+  return doc.output('arraybuffer')}
+async function saveFile(fn,buf,mime){if(dl){try{await dl.save({filename:fn,data:new Blob([buf],{type:mime})});toast('Ficheiro guardado')}catch(e){if(e&&e.code!=='declined')toast('Não foi possível guardar aqui.')}}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:mime}));a.download=fn;a.click()}}
+function rhMeta(L){const sum=t=>L.filter(l=>t.includes(l.t)&&l.v!=='').reduce((a,l)=>a+(+l.v||0),0);return{pagar:sum('RH'),descontar:sum('DF'),semValor:L.filter(l=>l.v==='').length,obra:(data.obras[st.obra]||{}).nome||'',mes:mesLabel(st.month),gerado:fdate(today()),faltas:L.filter(l=>l.t==='F'&&l.auto).reduce((a,l)=>a+(+l.q||0),0),he:+L.filter(l=>l.t==='H'&&l.auto).reduce((a,l)=>a+(+l.q||0),0).toFixed(2),manuais:L.filter(l=>!l.auto).length}}
+async function exportPrim(kind){const L=rhView();if(!L.length)return toast('Não há movimentos neste mês.');
+  const base=`Alteracoes_Mensais_Primavera_${st.rhAll?'Todas_as_obras':((data.obras[st.obra]||{}).nome||'obra').replace(/[^\w]+/g,'_')}_${st.month}`;
+  if(st.rhAll)L.forEach(l=>{l.o='['+l.ob+'] '+l.o});
+  if(kind==='xlsx'){if(!window.JSZip)return toast('A biblioteca de Excel não carregou. Verifique a ligação à internet e recarregue.');saveFile(base+'.xlsx',await buildXlsx(L),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+  else{if(!window.jspdf||!window.jspdf.jsPDF)return toast('A biblioteca de PDF não carregou. Verifique a ligação à internet e recarregue.');saveFile(base+'.pdf',buildPdf(window.jspdf,L,rhMeta(L)),'application/pdf')}}
+function cfgForm(){const c=pcfg();openForm(null,null,{novo:'Códigos e valores do Primavera',init:{codFalta:c.codFalta||'',codHExtra:c.codHExtra||'',codHExtraFDS:c.codHExtraFDS||'',tipoProc:c.tipoProc||'V',moeda:c.moeda||'AKZ',horasMes:c.horasMes||176,diasMes:c.diasMes||22,vencBase:c.vencBase||''},
+  fields:[{k:'codFalta',l:'Rubrica de falta (tipo F)',ref:'rubricas'},{k:'codHExtra',l:'Rubrica de hora extra em dias úteis (tipo H)',ref:'rubricas'},{k:'codHExtraFDS',l:'Rubrica de hora extra ao sábado e domingo',ref:'rubricas'},{k:'tipoProc',l:'Tipo de processamento',opts:['V','T','SF','SN','Extraordinário']},{k:'moeda',l:'Moeda'},{k:'horasMes',l:'Horas normais por mês (valor-hora)',type:'number'},{k:'diasMes',l:'Dias de trabalho por mês (valor-dia)',type:'number'},{k:'vencBase',l:'Vencimento base por defeito (Kz), se a ficha não tiver',type:'number',money:1}],
+  onSave:n=>{save('config','primavera',n);toast('Guardado')}})}
+function vRh(){if(st.rhAll&&db&&!st.allBusy&&st.allMonth!==st.month)loadAll();const cf=pcfg(),ALL=rhLines(),L=rhView(),mt=rhMeta(L),F=st.rhF,nomes=[...new Set(ALL.map(l=>l.n).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt')),[Y,M]=st.month.split('-').map(Number),lab=mesLabel(st.month);
+  const falta=!rubOf(cf.codFalta)||!rubOf(cf.codHExtra),ex=cf.exemplo,rbs=rows('rubricas'),kz=v=>Math.round(v).toLocaleString('pt-PT')+' Kz';
+  return `<div class="vh"><div><h1>RH · Primavera</h1><p class="sub">Ficheiro de alterações mensais para importar no Cegid Primavera</p></div><div class="tools"><div class="daynav"><button class="btn ghost" data-month="-1" aria-label="Mês anterior">‹</button><strong class="mlab">${esc(lab)}</strong><button class="btn ghost" data-month="1" aria-label="Mês seguinte">›</button><button class="btn ghost" data-month="0">Este mês</button></div><button class="btn ghost" data-cfg="1">Códigos do Primavera</button><button class="btn ghost" data-new="rh">Novo movimento manual</button><button class="btn" data-prim="xlsx">Exportar PRIMAVERA (Excel)</button><button class="btn" data-prim="pdf">Exportar PRIMAVERA (PDF)</button></div></div>
+  ${falta?`<div class="banner"><span>Faltam os códigos das rubricas de falta e de hora extra. Sem eles o ficheiro sai com a coluna Código vazia.</span><button class="btn" data-cfg="1">Configurar</button></div>`:ex?`<div class="banner"><span>Os códigos configurados (${esc(cf.codFalta)}, ${esc(cf.codHExtra)}) são fictícios, de demonstração. Substitua-os pelos códigos reais do Primavera antes de importar.</span><button class="btn" data-cfg="1">Alterar</button></div>`:''}
+  <div class="tiles"><div class="tile"><b>${L.length}</b><span>Linhas a exportar</span></div><div class="tile"><b>${mt.faltas}</b><span>Faltas (do ponto)</span></div><div class="tile"><b>${mt.he.toLocaleString('pt-PT')}</b><span>Horas extra (do ponto)</span></div><div class="tile"><b>${mt.manuais}</b><span>Movimentos manuais</span></div><div class="tile"><b class="money">${kz(mt.pagar)}</b><span>A pagar (R + H)</span></div><div class="tile"><b class="money">${kz(mt.descontar)}</b><span>A descontar (D + F)</span></div></div>
+  ${mt.semValor?`<p class="sub">${mt.semValor} linhas sem valor calculado: a rubrica é «Sem valor» ou o trabalhador não tem vencimento base.</p>`:''}
+  <div class="tools"><div class="seg"><button class="${st.rhAll?'':'on'}" data-rhall="0">Esta obra</button><button class="${st.rhAll?'on':''}" data-rhall="1">Todas as obras</button></div>
+  <div class="seg"><button class="${st.rhGroup?'':'on'}" data-rhg="0">Uma linha por dia</button><button class="${st.rhGroup?'on':''}" data-rhg="1">Totais do mês por trabalhador</button></div>
+  <div class="seg"><button class="${st.rhGroupBy==='none'?'on':''}" data-rhgb="none">Sem grupos</button><button class="${st.rhGroupBy==='trab'?'on':''}" data-rhgb="trab">Por trabalhador</button><button class="${st.rhGroupBy==='obra'?'on':''}" data-rhgb="obra">Por obra e trabalhador</button></div></div>
+  ${st.rhAll&&st.allBusy?'<p class="sub">A carregar as outras obras…</p>':''}
+  <p class="sub">Códigos: falta <strong>${esc((rubOf(cf.codFalta)||{}).codigo||'—')}</strong>, hora extra <strong>${esc((rubOf(cf.codHExtra)||{}).codigo||'—')}</strong>${rubOf(cf.codHExtraFDS)?', hora extra sáb./dom. <strong>'+esc(rubOf(cf.codHExtraFDS).codigo)+'</strong>':''} · processamento <strong>${esc(cf.tipoProc||'V')}</strong> · moeda <strong>${esc(cf.moeda||'AKZ')}</strong>. O código do funcionário é o «Código no Primavera» da ficha do trabalhador ou, se vazio, o nº do relógio com zeros à esquerda.</p>
+  <div class="tools filt"><label>Tipo <select data-rhf="t"><option value="">Todos</option>${[['R','R · Remuneração'],['D','D · Desconto'],['F','F · Falta'],['H','H · Hora extra']].map(o=>`<option value="${o[0]}"${F.t===o[0]?' selected':''}>${o[1]}</option>`).join('')}</select></label>
+  <label>Origem <select data-rhf="src"><option value="">Todas</option><option value="auto"${F.src==='auto'?' selected':''}>Relógio de ponto</option><option value="man"${F.src==='man'?' selected':''}>Manual</option></select></label>
+  <label>Trabalhador <select data-rhf="w"><option value="">Todos</option>${nomes.map(n=>`<option${F.w===n?' selected':''}>${esc(n)}</option>`).join('')}</select></label>
+  <label>Ordenar por <select data-rhs="1"><option value="nome"${st.rhSort==='nome'?' selected':''}>Nome</option><option value="data"${st.rhSort==='data'?' selected':''}>Data</option><option value="cod"${st.rhSort==='cod'?' selected':''}>Código do funcionário</option></select></label>
+  <input type="search" id="q" placeholder="Procurar" aria-label="Procurar">${F.t||F.src||F.w?`<button class="btn ghost" data-rhclear="1">Limpar filtros</button>`:''}</div>
+  <p class="sub">${L.length===ALL.length?`${L.length} linhas`:`${L.length} de ${ALL.length} linhas (a exportação inclui só as linhas filtradas)`}</p>
+  <div class="tablewrap">${L.length?`<table><thead><tr>${PH.map((h,i)=>`<th class="${i===5||i===6?'num':''}">${h}</th>`).join('')}<th>Origem</th></tr></thead><tbody>${(()=>{let go='',gn='',out='';const gb=st.rhGroupBy,tot=(ls)=>{const p=ls.filter(l=>'RH'.includes(l.t)&&l.v!=='').reduce((a,l)=>a+ +l.v,0),d=ls.filter(l=>'DF'.includes(l.t)&&l.v!=='').reduce((a,l)=>a+ +l.v,0);return `${ls.length} linhas · a pagar ${kz(p)} · a descontar ${kz(d)}`};
+  L.forEach(l=>{if(gb==='obra'&&l.ob!==go){go=l.ob;gn='';out+=`<tr class="grp ob"><td colspan="10"><strong>${esc(go)}</strong> · ${tot(L.filter(x=>x.ob===go))}</td></tr>`}
+    if(gb!=='none'&&l.n!==gn){gn=l.n;out+=`<tr class="grp"><td colspan="10"><strong>${esc(gn)}</strong> <span class="meta">${esc(l.f)}</span> · ${tot(L.filter(x=>x.n===gn&&(gb!=='obra'||x.ob===go)))}</td></tr>`}
+    out+=`<tr${l.id&&l.oid===st.obra?` class="click" data-edit="rh:${l.id}"`:''}>${''}<td>${l.t}</td><td>${esc(l.c)||'<span class="pill bad">sem código</span>'}</td><td>${esc(l.f)}<br><span class="meta">${esc(l.n)}</span></td><td>${esc(l.p)}</td><td>${fdate(l.d)}</td><td class="num">${l.q===''?'—':Number(l.q).toLocaleString('pt-PT')}</td><td class="num">${l.v===''?'<span class="pill warn">sem valor</span>':Number(l.v).toLocaleString('pt-PT')}</td><td>${esc(l.o)}</td><td>${esc(l.m)}</td><td>${l.auto?'<span class="pill">Ponto</span>':'<span class="pill warn">Manual</span>'}</td></tr>`});return out})()}</tbody></table>`:'<div class="empty">Sem faltas, horas extra nem movimentos manuais neste mês.</div>'}</div>
+  <div class="vh"><h2>Rubricas e cálculo dos valores</h2><button class="btn ghost" data-new="rubricas">Nova rubrica</button></div>
+  <div class="tablewrap">${rbs.length?`<table><thead><tr><th>Código</th><th>Tipo</th><th>Descrição</th><th>Cálculo do valor</th><th class="num">Valor / %</th></tr></thead><tbody>${rbs.map(r=>`<tr class="click" data-edit="rubricas:${r.id}"><td><strong>${esc(r.codigo)}</strong>${r.exemplo?'<span class="ex">exemplo</span>':''}</td><td>${esc((r.tipo||'')[0])}</td><td>${esc(r.descricao||'—')}</td><td>${esc(r.calculo||'Sem valor')}</td><td class="num">${r.valor==null||r.valor===''?'—':(String(r.calculo).startsWith('%')?r.valor+' %':Number(r.valor).toLocaleString('pt-PT')+' Kz')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Registe as rubricas do Primavera para associar códigos e valores.</div>'}</div>
+  <p class="help">Valor-hora = vencimento base ÷ ${esc(cf.horasMes||176)} h; valor-dia = vencimento base ÷ ${esc(cf.diasMes||22)} dias. O vencimento base vem da ficha do trabalhador${cf.vencBase?' (ou '+kz(+cf.vencBase)+' por defeito)':''}. Nos movimentos manuais, o valor escrito à mão tem prioridade sobre o cálculo da rubrica.</p>
+  <p class="help">O ficheiro Excel é gerado a partir do modelo «Exemplo_Alteracoes_Mensais_Primavera.xlsx»: mesmas nove colunas, formatação, filtro e validações, com os movimentos a começar na linha 2. As faltas e horas extra vêm do relógio de ponto deste mês; remunerações, descontos e outros acertos registam-se em «Novo movimento manual». As horas extra saem em horas decimais (1h30 = 1,50): confirme na parametrização do Primavera a unidade esperada e os identificadores do processamento extraordinário antes de importar.</p>`}
+
+/* ---------- localizar obras ---------- */
+const AO='M73.4 25.4L72.7 26.1L68.5 27.8L63.8 29.5L57.8 36.2L54.7 39.1L53.8 39.9L51.0 41.5L49.0 42.9L49.2 43.6L50.4 44.5L51.9 45.9L51.7 57.0L51.1 67.8L50.3 68.8L46.5 69.1L41.4 69.9L39.7 70.4L39.1 69.3L37.5 65.3L38.4 61.6L39.4 58.7L38.3 53.0L35.8 47.9L32.9 41.4L32.1 40.2L34.4 38.1L37.9 33.5L39.4 31.1L43.4 30.6L44.9 29.0L46.1 26.3L46.5 24.8L51.0 23.5L56.5 21.2L59.6 18.8L62.7 17.3L64.6 17.2L66.0 17.8L69.5 22.0L72.5 24.8L73.4 25.4ZM500.5 274.9L501.3 280.1L502.2 287.4L502.7 292.7L503.4 294.9L503.6 296.2L502.9 297.6L502.3 300.7L501.2 303.5L500.6 305.4L501.2 309.0L500.8 314.1L500.3 319.5L500.2 324.7L501.6 334.0L501.5 336.9L499.6 341.7L498.2 345.4L497.4 349.7L497.1 352.0L500.5 358.3L500.3 359.5L497.8 359.9L495.7 360.0L487.5 360.0L475.8 360.0L464.2 360.0L452.5 360.0L441.8 360.0L431.6 360.0L422.6 360.0L422.6 366.3L422.6 379.1L422.6 392.0L422.6 404.8L422.6 417.6L422.6 430.4L422.6 443.3L422.6 456.1L422.6 469.0L422.6 478.2L425.0 490.5L429.2 503.9L430.9 505.1L435.3 507.6L441.3 512.6L444.7 516.4L451.6 523.0L460.8 531.5L469.7 539.0L477.5 545.6L465.2 548.0L447.8 551.3L436.1 553.5L421.9 556.2L412.3 557.9L400.6 560.0L398.6 560.0L395.5 558.5L388.6 558.3L380.5 560.2L374.2 560.8L369.5 559.9L364.9 558.1L360.3 555.5L352.6 554.5L341.6 555.3L330.8 554.7L320.5 553.0L313.2 552.4L308.7 552.7L304.0 552.2L299.0 550.6L294.7 548.1L289.6 542.8L285.7 537.7L284.6 537.0L283.3 536.2L282.2 536.0L270.9 535.8L260.1 535.7L253.9 535.7L239.0 535.7L224.0 535.6L208.9 535.6L194.0 535.6L179.0 535.6L164.0 535.6L148.9 535.6L134.0 535.5L126.1 535.5L118.6 535.9L110.4 536.4L109.3 536.2L107.3 535.6L106.0 534.4L101.7 531.5L97.7 529.3L92.6 525.6L89.2 521.6L86.4 520.3L81.3 519.6L77.5 518.9L74.6 518.7L69.1 520.6L65.0 522.5L62.2 524.3L57.1 526.4L52.8 528.5L45.5 528.3L43.8 528.5L39.7 528.4L35.9 526.6L32.0 526.7L27.6 529.0L21.2 530.0L22.8 514.9L24.3 508.2L24.3 500.1L23.3 479.4L22.4 476.6L21.7 473.3L25.5 470.7L27.4 468.8L30.1 465.4L32.0 460.6L34.2 449.9L42.4 425.5L46.2 401.5L51.1 390.2L53.0 377.5L66.5 361.1L69.9 351.1L77.0 346.1L86.8 340.8L94.0 331.5L97.4 324.9L101.4 312.5L101.2 299.5L103.8 282.2L103.2 277.2L99.5 270.3L98.8 265.4L95.5 260.5L91.6 256.8L90.0 250.3L83.6 240.0L81.8 233.1L78.8 228.1L78.2 222.0L76.7 215.6L73.6 209.2L70.5 201.9L70.5 199.7L72.5 196.9L74.1 196.0L73.6 197.4L72.5 199.0L72.7 200.3L84.6 187.5L85.4 185.0L85.0 182.2L84.9 178.8L85.4 174.8L74.1 151.2L65.1 129.3L63.7 118.2L51.9 103.6L47.2 94.1L44.5 87.5L42.4 85.0L43.2 83.7L46.2 83.4L53.1 81.8L62.3 80.2L70.9 76.3L73.3 74.6L77.8 74.3L82.5 75.3L84.2 74.5L85.2 74.5L96.0 74.5L100.5 74.2L108.9 74.3L114.2 74.6L117.2 75.0L125.4 75.7L135.5 75.6L139.2 75.2L152.5 75.0L165.6 74.8L177.4 74.5L190.6 74.6L200.5 74.6L205.1 76.0L209.2 78.6L211.0 81.0L212.0 82.0L213.3 84.6L215.6 86.6L216.3 89.7L215.7 93.8L216.0 98.8L217.2 104.8L220.1 110.9L224.2 117.4L226.0 122.5L225.4 126.3L226.7 130.3L229.8 134.5L232.1 136.8L233.5 138.4L237.0 145.0L243.5 155.3L248.4 163.0L250.1 164.0L252.5 163.6L257.9 162.9L263.1 162.7L266.9 164.3L268.5 164.1L274.1 160.9L279.6 160.0L285.5 158.8L288.7 157.5L292.2 157.5L301.8 160.0L303.6 160.0L311.4 160.0L319.1 158.6L320.3 148.3L320.3 146.2L322.2 142.3L324.6 138.9L324.9 135.7L324.8 131.2L326.5 125.8L331.7 121.5L340.0 119.5L344.8 119.1L352.4 117.9L363.9 116.6L368.1 116.8L368.4 117.4L366.0 124.9L366.0 127.3L366.8 129.7L368.8 131.1L380.7 131.3L391.7 131.4L404.2 131.9L413.5 132.2L414.8 132.6L415.8 133.2L417.2 136.8L416.8 144.1L414.7 154.6L415.5 164.5L419.3 173.6L419.6 187.7L418.3 196.1L416.6 206.8L416.1 218.8L417.8 223.8L421.3 229.0L426.8 234.5L431.0 241.6L434.1 250.4L435.3 255.9L434.4 258.1L434.4 262.0L435.4 267.7L434.3 271.3L431.3 273.2L430.3 275.7L431.9 280.5L432.2 284.9L433.4 286.5L434.3 287.8L435.7 287.9L438.8 286.4L442.5 283.5L445.3 282.2L449.5 282.4L455.3 283.2L465.6 283.5L468.7 283.0L478.2 279.0L480.7 278.8L484.5 279.1L489.9 280.3L495.3 280.6L497.9 279.3L498.1 277.7L498.9 275.6L500.5 274.9Z';
+const CID=[['Luanda',-8.84,13.23,1],['Caxito',-8.58,13.66],['Cabinda',-5.55,12.19],['Mbanza Kongo',-6.27,14.24],['Uíge',-7.61,15.06],['Ndalatando',-9.30,14.91],['Malanje',-9.54,16.34],['Dundo',-7.38,20.83],['Saurimo',-9.66,20.39],['Sumbe',-11.21,13.84,1],['Benguela',-12.58,13.41,1],['Huambo',-12.78,15.74],['Kuito',-12.38,16.94],['Luena',-11.78,19.92],['Lubango',-14.92,13.49],['Moçâmedes',-15.20,12.15,1],['Menongue',-14.66,17.69],['Ondjiva',-17.07,15.73]];
+const MW=520,MH=580,px=lon=>(lon-11.2)*39.2,py=lat=>(-lat-4)*40;
+function statOf(c){const inT=new Set();c.t.forEach(t=>(t.responsaveis||[]).forEach(i=>inT.add(i)));
+  return{trab:c.w.length,ativos:c.w.filter(w=>!w.estado||w.estado==='Ativo').length,pres:new Set(c.p.map(p=>p.n)).size,maq:c.e.filter(e=>e.tipo!=='Viatura').length,viat:c.e.filter(e=>e.tipo==='Viatura').length,parados:c.e.filter(e=>e.estado==='Avariado'||e.estado==='Manutenção').length,tarefas:c.t.length,emTarefa:inT.size,transp:c.l.length}}
+function mem(id){const f=c=>Object.values(data[c]).filter(o=>o.obra===id),td=today();return{w:f('trabalhadores'),e:f('equipamentos'),t:f('tarefas').filter(x=>x.data===td),l:f('logistica').filter(x=>x.data===td),p:(data.ponto[id+'_'+td]||{}).registos||[]}}
+async function loadStats(){if(st.statsBusy||!db)return;st.statsBusy=true;const td=today();
+  try{for(const o of rows('obras')){if(o.id===st.obra)continue;
+    const q=async(c,dia)=>{let r=db.collection(c).where('obra','==',o.id);if(dia)r=r.where('data','==',td);return (await r.limit(1000).get()).docs.map(d=>d.data())};
+    const[w,e,t,l,p]=await Promise.all([q('trabalhadores'),q('equipamentos'),q('tarefas',1),q('logistica',1),db.collection('ponto').doc(o.id+'_'+td).get()]);
+    st.stats[o.id]=statOf({w,e,t,l,p:p.exists?((p.data()||{}).registos||[]):[]})}}
+  catch(e){toast('Não foi possível contar todas as obras.')}
+  st.statsBusy=false;st.statsAt=Date.now();if(st.view==='mapa')render()}
+const stat=id=>(!db||id===st.obra)?statOf(mem(id)):st.stats[id];
+const hasLoc=o=>o.lat!=null&&o.lon!=null&&o.lat!==''&&o.lon!=='';
+function vMapa(){const obs=rows('obras'),vb=st.vb||[0,0,MW,MH],z=vb[2]/MW;
+  if(db&&!st.statsBusy&&(!st.statsAt||Date.now()-st.statsAt>120000))loadStats();
+  if(!data.obras[st.sel])st.sel=st.obra;
+  const sel=data.obras[st.sel],ss=stat(st.sel),n=v=>v==null?'…':v;
+  const cities=CID.map(c=>`<circle cx="${px(c[2])}" cy="${py(c[1])}" r="${1.6*z}" fill="var(--muted)"/><text x="${px(c[2])+(c[3]?-4:4)*z}" y="${py(c[1])+3*z}" font-size="${8.5*z}" fill="var(--muted)" text-anchor="${c[3]?'end':'start'}">${c[0]}</text>`).join('');
+  const mk=obs.filter(hasLoc).sort((a,b)=>(a.id===st.sel)-(b.id===st.sel)).map(o=>{const s=stat(o.id),r=(s?7+Math.sqrt(s.trab)*.7:9)*z,on=o.id===st.sel,x=px(+o.lon),y=py(+o.lat);
+    return `<g data-mk="${o.id}" style="cursor:pointer"><title>${esc(o.nome)}</title><circle cx="${x}" cy="${y}" r="${r}" fill="var(--brand)" fill-opacity=".88" stroke="${on?'var(--ink)':'var(--surface)'}" stroke-width="${(on?2.5:1.5)*z}"/><text x="${x}" y="${y+3.5*z}" font-size="${10*z}" font-weight="700" fill="var(--on-brand)" text-anchor="middle">${s?s.trab:''}</text>${on?`<text x="${x+r+4*z}" y="${y+4*z}" font-size="${11*z}" font-weight="600" fill="var(--ink)" stroke="var(--surface)" stroke-width="${3*z}" paint-order="stroke">${esc(o.nome)}</text>`:''}</g>`}).join('');
+  const tile=(v,l)=>`<div class="tile"><b>${v}</b><span>${l}</span></div>`;
+  const panel=sel?`<div class="stack"><h2>${esc(sel.nome)}</h2><p class="sub">${esc([sel.tipo,sel.local].filter(Boolean).join(' · '))}<br>${hasLoc(sel)?`Coordenadas: ${(+sel.lat).toFixed(4)}, ${(+sel.lon).toFixed(4)}`:'Ainda sem localização no mapa.'}</p>
+    ${st.placing?`<div class="banner"><span>Clique no mapa no local desta obra.</span><button class="btn" data-place="0">Cancelar</button></div>`:`<div class="tools"><button class="btn" data-abrir="${st.sel}">Abrir esta obra</button><button class="btn ghost" data-place="1">${hasLoc(sel)?'Mudar local no mapa':'Marcar local no mapa'}</button></div>`}
+    <div class="tiles sm">${ss?tile(`${ss.ativos}<i> / ${ss.trab}</i>`,'Trabalhadores ativos')+tile(ss.pres,'Presentes hoje')+tile(ss.emTarefa,'Em tarefa hoje')+tile(ss.maq,'Máquinas')+tile(ss.viat,'Viaturas')+tile(ss.parados,'Meios parados')+tile(ss.tarefas,'Tarefas hoje')+tile(ss.transp,'Transportes hoje'):'<div class="card empty">A contar…</div>'}</div></div>`:'';
+  return `<div class="vh"><div><h1>Localizar obras</h1><p class="sub">${longDay(today())} · ${obs.length} obras, ${obs.filter(hasLoc).length} no mapa</p></div><div class="tools">${db?'<button class="btn ghost" data-refresh="1">Atualizar contagens</button>':''}<button class="btn ghost" data-new="obras">Nova obra</button></div></div>
+  <div class="cols"><div class="mapbox"><svg id="map" viewBox="${vb.join(' ')}" role="img" aria-label="Mapa de Angola com a localização das obras"><path d="${AO}" fill="var(--surface)" stroke="var(--muted)" stroke-width="${z}" stroke-linejoin="round"/>${cities}${mk}</svg><div class="zoom"><button class="btn ghost" data-zoom="0.6" aria-label="Aproximar">+</button><button class="btn ghost" data-zoom="1.67" aria-label="Afastar">−</button><button class="btn ghost" data-zoom="0" aria-label="Ver Angola inteira">⤢</button></div></div>${panel}</div>
+  <p class="help">O número em cada círculo é o total de trabalhadores da obra. Clique num círculo para ver o que lá está hoje. Arraste o mapa para o mover.</p>
+  <div class="tablewrap"><table><thead><tr><th>Obra</th><th>Local</th><th class="num">Trabalhadores</th><th class="num">Presentes hoje</th><th class="num">Em tarefa hoje</th><th class="num">Máquinas</th><th class="num">Viaturas</th><th class="num">Meios parados</th><th class="num">Tarefas hoje</th></tr></thead><tbody>${obs.map(o=>{const s=stat(o.id)||{};return `<tr class="click" data-mk="${o.id}"><td>${esc(o.nome)}${hasLoc(o)?'':' <span class="ex">sem local</span>'}</td><td>${esc(o.local||'—')}</td><td class="num">${n(s.trab)}</td><td class="num">${n(s.pres)}</td><td class="num">${n(s.emTarefa)}</td><td class="num">${n(s.maq)}</td><td class="num">${n(s.viat)}</td><td class="num">${n(s.parados)}</td><td class="num">${n(s.tarefas)}</td></tr>`}).join('')}</tbody></table></div>`}
+
+function render(){
+  const U=Object.values(data.utilizadores).filter(u=>u.estado!=='Inativo');
+  if(st.user&&!data.utilizadores[st.user]&&U.length&&obrasOk)st.user='';
+  if(!st.user&&U.length&&obrasOk){$('#nav').innerHTML='';$('#ubox').innerHTML='';
+    $('#main').innerHTML=`<div class="vh"><div><h1>Quem está a trabalhar?</h1><p class="sub">Escolha o seu utilizador e escreva a palavra-passe. Na demonstração, a palavra-passe de todos os utilizadores é 123.</p></div></div>${st.pend?pwForm(st.pend):''}<div class="ulist">${Object.entries(data.utilizadores).filter(([,u])=>u.estado!=='Inativo').sort((a,b)=>(a[1].perfil||'').localeCompare(b[1].perfil||'')).map(([id,u])=>`<button class="ucard" data-pick="${id}"><img class="av big" alt="" src="${u.foto||avW({id,nome:u.nome,funcao:u.cargo})}"><strong>${esc(u.nome)}</strong><span class="meta">${esc(u.cargo||'')}</span><span class="pill">${esc(u.perfil)}</span></button>`).join('')}</div>`;return}
+  if(!okView(st.view))st.view='hoje';
+  if(st.user&&data.obras[st.obra]&&!obraOk(st.obra)){const f=rows('obras')[0];if(f){setObra(f.id);return}}
+  {let last='',gi=-1;const gs=VIEWS.filter(x=>x[2]).map(x=>x[2]);let cur_='';
+   $('#nav').innerHTML=VIEWS.map(v=>{if(v[2])cur_=v[2];if(!okView(v[0]))return '';let h='';if(cur_!==last){last=cur_;h=`<span class="ng g${gs.indexOf(cur_)}">${cur_}</span>`}return h+`<a href="#${v[0]}" data-nav="${v[0]}" class="${st.view===v[0]?'on':''}">${v[1]}</a>`}).join('')}
+  const um=me();$('#ubox').innerHTML=um?`<img class="av" alt="" src="${um.foto||avW({id:st.user,nome:um.nome,funcao:um.cargo})}"><span><strong>${esc(um.nome)}</strong><br><span class="meta">${esc(um.perfil)}</span></span><button class="btn ghost" data-umenu="1">Trocar utilizador ▾</button>${st.umenu?`<div class="umenu">${st.pend?pwForm(st.pend):''}${rows('utilizadores').filter(x=>x.estado!=='Inativo').map(x=>`<button data-pick="${x.id}" class="${x.id===st.user?'on':''}"><img class="av" alt="" src="${x.foto||avW({id:x.id,nome:x.nome,funcao:x.cargo})}"><span><strong>${esc(x.nome)}</strong><br><small>${esc(x.perfil)}${x.obras&&x.obras.length?' · '+x.obras.length+' obra'+(x.obras.length>1?'s':''):' · todas as obras'}</small></span></button>`).join('')}</div>`:''}`:'';
+  if(st.view==='biometria'&&$('#bio'))return;
+  const cur=data.obras[st.obra],q=$('#q')?$('#q').value:'';
+  if(!cur)st.view='hoje';
+  const body=st.view==='hoje'?vHoje():st.view==='tarefas'?vTarefas():st.view==='ponto'?vPonto():st.view==='plano'?vPlano():st.view==='mapa'?vMapa():st.view==='rh'?vRh():st.view==='biometria'?vBio():vGeneric(st.view);
+  const bar=cur&&st.view!=='hoje'&&st.view!=='mapa'&&st.view!=='biometria'?`<label class="obar">Obra <select id="obrasel">${rows('obras').map(o=>`<option value="${o.id}"${o.id===st.obra?' selected':''}>${esc(o.nome)}</option>`).join('')}</select></label>`:'';
+  const nb=st.view==='biometria';
+  $('#main').innerHTML=(cur&&cur.exemplo&&!nb?`<div class="banner"><span>Esta obra é de demonstração: trabalhadores, tarefas, picagens e pedidos são simulados.</span><button class="btn" data-danger data-delobra="1">Apagar esta obra</button></div>`:'')+bar+body;
+  const vh=$('#main .vh');if(vh&&DASH[st.view]&&cur||(vh&&DASH[st.view]&&GL.includes(st.view)))vh.insertAdjacentHTML('afterend',DASH[st.view]());
+  const bf=$('#bio');if(bf&&!bf.getAttribute('src'))bf.src='sp.html';
+  if(q&&$('#q')){$('#q').value=q;filter()}
+}
+function filter(){const q=$('#q').value.toLowerCase();document.querySelectorAll('#main tbody tr').forEach(tr=>{tr.hidden=!!q&&!tr.textContent.toLowerCase().includes(q)})}
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},3500)}
+
+/* ---------- formulários ---------- */
+function openForm(c,id,custom){
+  if(!custom&&c!=='obras'&&!GL.includes(c)&&!data.obras[st.obra])return toast('Crie ou escolha primeiro uma obra.');
+  const s=custom||S[c],o=id?data[c][id]:(custom?custom.init:{data:st.view==='tarefas'||st.view==='ponto'?st.day:today(),estado:(fld(c,'estado')||{opts:[]}).opts[0],prioridade:'Normal',tipo:'Máquina',hEntrada:'07:00',hSaida:'16:00',pausa:60,tolerancia:10,hSab:0});
+  const inp=f=>{const v=o[f.k]??'',i=`id="f_${f.k}" name="${f.k}"`;
+    if(f.opts)return `<select ${i}>${f.opts.map(x=>`<option${x===v?' selected':''}>${esc(x)}</option>`).join('')}</select>`;
+    if(f.ref)return `<select ${i}><option value="">—</option>${rows(f.ref).map(r=>`<option value="${r.id}"${r.id===v||(r.codigo&&r.codigo===v)?' selected':''}>${esc(r.nome)}</option>`).join('')}</select>`;
+    if(f.refs){const l=rows(f.refs).sort((a,b)=>(v||[]).includes(b.id)-(v||[]).includes(a.id));return `${l.length>12?`<input type="search" data-ckq="f_${f.k}" placeholder="Filtrar" aria-label="Filtrar">`:''}<div class="checks" id="f_${f.k}">${l.length?l.map(r=>`<label><input type="checkbox" value="${r.id}"${(v||[]).includes(r.id)?' checked':''}>${esc(r.nome)}${r.estado&&!['Ativo','Disponível'].includes(r.estado)?' ('+esc(r.estado)+')':''}</label>`).join(''):'<span class="meta">Nada registado ainda.</span>'}</div>`}
+    if(f.photo)return `<div class="fotoup"><img id="fprev" class="${f.photo==='e'?'v':''}" alt="" src="${v||(f.photo==='e'?avV(o):avW(o))}"><div><input type="file" accept="image/*" id="f_foto_file"><input type="hidden" id="f_${f.k}" name="${f.k}" value="${esc(v)}"><div class="meta">Se não escolher, usa-se a ilustração automática.</div></div></div>`;
+    if(f.type==='area')return `<textarea ${i} rows="2">${esc(v)}</textarea>`;
+    return `<input ${i} type="${f.type||'text'}" value="${esc(v)}"${f.req?' required':''}${f.type==='number'?' step="any"'+(f.neg?'':' min="0"'):''}>`};
+  const FS=s.fields.filter(f=>!f.calc);
+  $('#dlg').innerHTML=`<form id="frm"><h2>${id?'Editar':esc(s.novo)}</h2><div class="fields">${FS.map(f=>f.refs?`<div class="${f.wide?'wide':''}"><label>${esc(f.l)}</label>${inp(f)}</div>`:`<label class="${f.wide?'wide':''}">${esc(f.l)}${inp(f)}</label>`).join('')}</div>
+  <div class="actions">${id?`<button type="button" class="btn danger" data-danger data-del="${c}:${id}">${c==='obras'?'Apagar obra e os seus dados':'Apagar'}</button>`:''}${id&&(c==='trabalhadores'||c==='equipamentos')?`<button type="button" class="btn ghost" data-res="${c}:${id}">Ver ficha de uso</button>`:''}<button type="button" class="btn ghost" data-close="1">Cancelar</button><button class="btn">Guardar</button></div></form>`;
+  $('#frm').onsubmit=e=>{e.preventDefault();const n={};
+    FS.forEach(f=>{if(f.refs)n[f.k]=[...document.querySelectorAll(`#f_${f.k} input:checked`)].map(x=>x.value);else{const v=$('#f_'+f.k).value.trim();if(v!=='')n[f.k]=f.type==='number'?+v:v}});
+    $('#dlg').close();
+    if(custom)return custom.onSave(n);
+    if(c!=='obras'&&c!=='config'&&c!=='rubricas'&&!GL.includes(c))n.obra=st.obra;
+    if(c==='stock'){const ar=data.armazens[n.armazem];n.obra=ar?ar.obra||'':''}
+    if(c==='transferencias')applyTransfer(id?data[c][id]:null,n);
+    if(c==='rubricas')n.nome=n.codigo+(n.descricao?' · '+n.descricao:'');if(id&&o.exemplo)n.exemplo=true;
+    const nid=id||uid();save(c,nid,n);toast('Guardado');if(c==='obras'&&!id)setObra(nid)};
+  $('#dlg').showModal();
+}
+function applyTransfer(prev,n){if(n.estado!=='Recebida'||(prev&&prev.estado==='Recebida'))return;
+  const q=+n.qtd||0,key=a=>String(a||'').toLowerCase(),ent=Object.entries(data.stock),
+    of=ent.find(([,r])=>r.armazem===n.de&&key(r.artigo)===key(n.artigo)),df=ent.find(([,r])=>r.armazem===n.para&&key(r.artigo)===key(n.artigo));
+  if(of)save('stock',of[0],{...of[1],qtd:Math.max(0,(+of[1].qtd||0)-q)});
+  if(df)save('stock',df[0],{...df[1],qtd:(+df[1].qtd||0)+q});
+  else{const ar=data.armazens[n.para];save('stock','s'+uid(),{armazem:n.para,obra:ar?ar.obra||'':'',artigo:n.artigo,unidade:n.unidade||'',qtd:q,minimo:0,local:'Receção'})}
+  toast('Transferência recebida: stock atualizado')}
+function justForm(k){const cur=(pdoc(st.day).just||{})[k];
+  openForm(null,null,{novo:'Justificar ausência',init:{j:cur||'Sem justificação'},
+    fields:[{k:'j',l:'Justificação em '+fdate(st.day),wide:1,opts:['Sem justificação','Falta justificada','Falta injustificada','Férias','Folga','Formação','Deslocação em serviço','Baixa médica']}],
+    onSave:n=>{const just={...(pdoc(st.day).just||{})};if(n.j==='Sem justificação')delete just[k];else just[k]=n.j;savePonto(st.day,{just});toast('Guardado')}})}
+function punchForm(){const now=new Date();
+  openForm(null,null,{novo:'Registar picagem',init:{dia:st.day,hora:p2(now.getHours())+':'+p2(now.getMinutes())},
+    fields:[{k:'trab',l:'Trabalhador',ref:'trabalhadores',wide:1},{k:'dia',l:'Dia',type:'date',req:1},{k:'hora',l:'Hora',type:'time',req:1}],
+    onSave:async n=>{const w=n.trab&&data.trabalhadores[n.trab];if(!w)return toast('Escolha o trabalhador.');
+      await addPunches(n.dia,[{n:pkey({...w,id:n.trab}),h:n.hora}],'Manual');toast('Picagem registada')}})}
+function distText(){const ts=dayTasks(st.day);
+  return `ENERLINE · Distribuição de tarefas · ${longDay(st.day)}\n\n`+(ts.length?ts.map((t,i)=>`${i+1}. ${t.hora?t.hora+' ':''}${t.titulo}${t.prioridade==='Urgente'?' (URGENTE)':''}\n   Local: ${t.frente||'—'}\n   Equipa: ${plain(fld('tarefas','responsaveis'),t.responsaveis)||'por atribuir'}${(t.equipamentos||[]).length?'\n   Meios: '+plain(fld('tarefas','equipamentos'),t.equipamentos):''}${t.notas?'\n   Notas: '+t.notas:''}`).join('\n\n'):'Sem tarefas.')}
+function showText(t){$('#dlg').innerHTML=`<form method="dialog"><h2>Distribuição do dia</h2><textarea id="cptxt" rows="12" readonly>${esc(t)}</textarea><div class="actions"><button class="btn">Fechar</button></div></form>`;$('#dlg').showModal();$('#cptxt').select()}
+async function exportCsv(c){let head,lines;
+  if(c==='ficha'){const f=fichaRows();if(!f)return;head=f.head;lines=f.ev.map(f.line);c='ficha-'+data[f.c][f.id].nome.replace(/[^\w]+/g,'-')}
+  else if(c==='ponto'){head=['Dia','Nº','Trabalhador','Entrada','Saída','Trabalhado','Normais','Extra','Atraso (min)','Situação'];lines=dayRows(st.day).map(r=>[fdate(st.day),r.num,r.nome,r.ent,r.sai,r.horas,fh(r.norm),fh(r.extra),r.atraso||'',r.sit])}
+  else if(c==='pontomes'){head=['Mês','Nº','Trabalhador','Dias','Horas normais','Extra dias úteis','Extra sáb. e dom.','Total extra','Atrasos','Min. de atraso','Faltas','Sem saída'];lines=monthRows().map(r=>[st.month,r.num,r.nome,r.dias,fh(r.norm),fh(r.exU),fh(r.exF),fh(r.exU+r.exF),r.nAt,r.mAt,r.faltas,r.semSaida]);c='ponto-mes-'+st.month}
+  else{const fs=S[c].fields;head=fs.map(f=>f.l);lines=rows(c).map(r=>fs.map(f=>plain(f,r[f.k])))}
+  const csv='﻿'+[head,...lines].map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const fn=`enerline-${c}-${c==='ponto'?st.day:today()}.csv`;
+  if(dl){try{await dl.save({filename:fn,data:csv});toast('Ficheiro guardado')}catch(e){if(e&&e.code!=='declined')toast('Não foi possível exportar aqui.')}}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=fn;a.click()}
+}
+
+/* ---------- dados de demonstração (simulados, sempre iguais para o mesmo dia) ---------- */
+function genDemo(T){
+  let s=20261012;const R=()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  let s2=77001;const R2=()=>{s2=s2+0x6D2B79F5|0;let t=Math.imul(s2^s2>>>15,1|s2);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},r2=(a,b)=>a+Math.floor(R2()*(b-a+1));
+  const ri=(a,b)=>a+Math.floor(R()*(b-a+1)),pick=a=>a[Math.floor(R()*a.length)],z=n=>String(n).padStart(2,'0');
+  const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  const dd=n=>{const d=new Date(T+'T12:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())};
+  const hm=m=>z(Math.floor(m/60))+':'+z(m%60);
+  const out=[],put=(c,id,o)=>out.push([c,id,{...o,exemplo:true}]);
+  const DAYS=[];for(let n=-7;n<=4;n++)if(new Date(dd(n)+'T12:00').getDay()!==0)DAYS.push(n);
+  const FN='António,Manuel,João,José,Domingos,Pedro,Paulo,Francisco,Adão,Mateus,Joaquim,Sebastião,Miguel,Fernando,Carlos,Augusto,Bernardo,Daniel,Eduardo,Filipe,Garcia,Hélder,Isaac,Jorge,Lourenço,Marcos,Nelson,Osvaldo,Rafael,Simão,Tomás,Victor,Zacarias,Abel,Bento,Cristóvão,Ana,Maria,Isabel,Teresa,Luísa,Rosa,Marta,Helena,Joana,Esperança'.split(',');
+  const SN='Domingos,Kiala,Tavares,Sebastião,Cassule,Ngola,Manuel,António,Francisco,João,Neto,Santos,Fernandes,Lopes,Gomes,Mendes,Pereira,Costa,Correia,Miguel,Paulo,Pedro,Matias,Cardoso,Bumba,Quissanga,Zua,Muhongo,Cangombe,Chitumba,Samba,Lemos,Vunge,Kapingala,Tchissola,Mbala,Dala,Cunha,Baptista,Simões'.split(',');
+  const ARM=[['Luvas isolantes classe 2','pares',4,20],['Capacetes de proteção','un',5,30],['Arneses de segurança','un',2,12],['Cabo de cobre nu 50 mm²','m',50,400],['Terminais de compressão','un',20,150],['Parafusos M16 galvanizados','un',50,400],['Elétrodos de soldadura','kg',5,25],['Fita isoladora','rolos',10,40],['Abraçadeiras metálicas','un',30,200],['Isoladores de cadeia','un',12,90],['Pinças de amarração','un',10,60],['Cimento','sacos',20,120],['Varão de aço 12 mm','m',60,480],['Discos de corte','un',10,40],['Gasóleo','L',100,800],['Ligadores bimetálicos','un',10,80],['Botas de segurança','pares',4,20]];
+  const COMP=[['Cabo de alumínio-aço ACSR','m',2000,9000,1900],['Postes de betão 12 m','un',10,40,185000],['Isoladores poliméricos 60 kV','un',30,120,42000],['Cimento','sacos',200,800,8000],['Brita e areia','m³',40,160,21000],['Estruturas metálicas galvanizadas','t',4,18,1450000],['Cabo de comando 12x2,5 mm²','m',500,3000,2600],['Varão de aço A500','t',3,12,980000],['Equipamento de proteção individual','conj',20,80,38000],['Gasóleo a granel','L',2000,10000,400],['Ferragens para linhas','conj',20,90,56000],['Luminárias LED de iluminação pública','un',20,80,96000],['Quadro geral de baixa tensão','un',1,4,2400000],['Transformador de distribuição 250 kVA','un',1,3,9800000]];
+  const GRUPO=nm=>/Carrinha 4x4|Pick-up|Ligeiro/.test(nm)?'Viatura de serviço':/Autocarro|caixa aberta|Carrinha/.test(nm)?'Viatura de obra':/Camião|basculante|cesto|transporte de postes|Cisterna/.test(nm)?'Camião / pesado':/Grua móvel|Plataforma|Empilhador|Guincho|Freio/.test(nm)?'Elevação e lançamento':/Gerador|soldar|Compressor/.test(nm)?'Energia e soldadura':'Máquina de obra';
+  const FORN=[['Cabos & Condutores Angola, Lda','Cabos e condutores'],['Metalúrgica do Sul, SA','Estruturas metálicas'],['Betão Pronto Luanda','Betão e inertes'],['Isoladores & Ferragens Import','Isoladores e ferragens'],['Protec EPI Angola','Equipamento de proteção'],['Sonangol Distribuidora (posto)','Combustível'],['Transformadores Ibéricos (rep.)','Transformadores e quadros'],['Pedreiras do Kwanza','Inertes'],['ElectroStock Angola','Material elétrico'],['Aluguer de Máquinas Viana','Aluguer de equipamento'],['Pneus & Baterias Cazenga','Peças e pneus'],['Postes de Betão do Bengo','Postes de betão'],['Cabos do Atlântico, SA','Cabos e condutores'],['Quadros Elétricos Luanda','Quadros e celas'],['Ferragens Industriais do Lobito','Isoladores e ferragens'],['Transportes e Guindastes Cuanza','Aluguer de equipamento'],['Sinalização e Segurança Angola','Equipamento de proteção'],['Lubrificantes e Combustíveis do Sul','Combustível'],['Laboratório de Ensaios Elétricos','Ensaios e calibração'],['Topografia e Cartografia de Angola','Topografia'],['Gerações e Energia, Lda','Geradores e grupos'],['Construções Metálicas do Huambo','Estruturas metálicas'],['Betões do Planalto','Betão e inertes'],['Material de Escritório e Estaleiro','Consumíveis']];
+  const SUB=['Terraplenagens Mulemba, Lda','Betões do Norte','Soldaduras Técnicas Angola','Vedações e Serralharia Kilamba','Topografia Precisa','Transportes Pesados Catete','Limpeza e Desmatação Sul','Montagens Elétricas Kwanza','Escavações e Fundações Cabinda','Pintura e Galvanização Industrial','Segurança e Vigilância Angola','Alojamento e Catering de Obra','Ensaios de Cabos e Isolamento','Cofragens e Armaduras do Sul'];
+  const OB=[
+   {id:'o1',lat:-8.9,lon:13.37,n:110,nome:'Subestação 220/60 kV',tipo:'Subestação',local:'Província de Luanda',provincia:'Luanda',cliente:'Operador da rede de transporte',perDay:8,crew:[10,18],logN:2,armN:3,rel:['Portaria principal','Estaleiro'],
+    trades:[['Eletricista de subestações',5],['Montador de estruturas metálicas',5],['Pedreiro',3],['Armador de ferro',2],['Soldador',2],['Ajudante de eletricista',4],['Servente',5]],
+    frentes:['Parque exterior 220 kV','Parque exterior 60 kV','Zona dos transformadores','Edifício de comando','Malha de terra','Caleiras de cabos'],
+    tasks:['Escavação das fundações dos pórticos','Betonagem dos maciços dos pórticos','Montagem da estrutura metálica dos pórticos','Montagem de disjuntores 60 kV','Montagem de seccionadores 220 kV','Instalação da malha de terra','Passagem de cabos de comando e controlo','Montagem de barramentos','Montagem de transformadores de medida (TT e TI)','Construção de caleiras de cabos','Assentamento do transformador de potência','Montagem dos quadros de média tensão','Alvenarias do edifício de comando','Ensaios de isolamento e continuidade','Vedação e portões do recinto'],
+    eq:[['Grua móvel 50 t','Máquina',1],['Camião grua 12 t','Viatura',3],['Camião basculante','Viatura',2],['Carrinha 4x4 cabine dupla','Viatura',5],['Autocarro de pessoal','Viatura',2],['Retroescavadora','Máquina',2],['Escavadora giratória','Máquina',1],['Plataforma elevatória','Máquina',2],['Gerador 100 kVA','Máquina',2],['Betoneira','Máquina',2],['Compressor','Máquina',1],['Máquina de soldar','Máquina',2],['Empilhador telescópico','Máquina',1]],
+    log:['Estruturas metálicas dos pórticos','Bobinas de cabo de comando','Disjuntores 60 kV (3 un)','Cimento e inertes','Quadros de média tensão','Isoladores e ferragens','Gasóleo para geradores','Transporte de pessoal'],
+    med:[['Fundações de pórticos','un',48],['Estrutura metálica','t',120],['Malha de terra','m',3200],['Cabos de comando','m',9500],['Caleiras','m',640],['Equipamento 60 kV montado','un',18]]},
+   {id:'o2',lat:-7.86,lon:13.12,n:80,nome:'Linha de transporte 60 kV, 42 apoios',tipo:'Linha aérea',local:'Província do Bengo',provincia:'Bengo',cliente:'Operador da rede de transporte',perDay:5,crew:[8,13],logN:1,armN:2,rel:['Estaleiro da linha'],
+    trades:[['Eletricista de linhas',6],['Montador de linhas',5],['Ajudante de eletricista',3],['Servente',4],['Pedreiro',1]],
+    frentes:['Troço AP1 a AP10','Troço AP11 a AP20','Troço AP21 a AP30','Troço AP31 a AP42','Estaleiro'],
+    tasks:['Piquetagem do traçado','Desmatação da faixa de proteção','Abertura de covas para apoios','Betonagem das fundações dos apoios','Montagem de postes metálicos treliçados','Implantação de postes de betão','Montagem de travessas e cadeias de isoladores','Desenrolamento de condutores','Regulação e amarração de condutores','Ligação à terra dos apoios','Montagem do cabo de guarda'],
+    eq:[['Camião grua 12 t','Viatura',2],['Camião de transporte de postes','Viatura',2],['Carrinha 4x4 cabine dupla','Viatura',3],['Autocarro de pessoal','Viatura',1],['Retroescavadora','Máquina',1],['Perfuradora de covas','Máquina',1],['Guincho de desenrolamento de cabo','Máquina',1],['Freio de lançamento','Máquina',1],['Gerador 30 kVA','Máquina',1],['Betoneira','Máquina',1]],
+    log:['Postes de betão 12 m (8 un)','Perfis para postes treliçados','Bobinas de cabo ACSR (4 un)','Cadeias de isoladores','Cimento e inertes','Transporte de pessoal','Gasóleo'],
+    med:[['Fundações de apoios','un',42],['Apoios montados','un',42],['Condutor lançado','km',27],['Cabo de guarda','km',27],['Faixa desmatada','km',27]]},
+   {id:'o3',lat:-11.2,lon:13.84,n:60,nome:'Rede de distribuição MT/BT e iluminação pública',tipo:'Rede de distribuição',local:'Província do Cuanza Sul',provincia:'Cuanza Sul',cliente:'Distribuidora de energia',perDay:4,crew:[6,10],logN:1,armN:1,rel:['Estaleiro'],
+    trades:[['Eletricista de redes',6],['Montador',3],['Ajudante de eletricista',3],['Servente',3]],
+    frentes:['Sector A','Sector B','Sector C','Posto de transformação 1','Posto de transformação 2'],
+    tasks:['Implantação de postes de baixa tensão','Passagem de cabo torçada','Montagem de posto de transformação aéreo','Execução de ramais domiciliários','Montagem de luminárias de iluminação pública','Montagem do quadro geral do posto de transformação','Ligação de baixadas','Ensaios e ligação à rede','Abertura de covas para postes'],
+    eq:[['Camião grua 8 t','Viatura',1],['Carrinha 4x4 cabine dupla','Viatura',3],['Carrinha de caixa aberta','Viatura',1],['Camião cesto','Viatura',1],['Perfuradora de covas','Máquina',1],['Gerador 30 kVA','Máquina',1],['Compressor','Máquina',1]],
+    log:['Postes de betão 9 m (10 un)','Bobinas de cabo torçada','Luminárias LED','Transformador de distribuição 250 kVA','Ferragens e pinças','Transporte de pessoal'],
+    med:[['Postes BT implantados','un',380],['Cabo torçada','km',14],['Luminárias','un',420],['Ramais domiciliários','un',650],['PT aéreos','un',6]]},
+   {id:'o4',lat:-5.56,lon:12.2,n:75,nome:'Linha 60 kV Cabinda–Malongo e subestação de chegada',tipo:'Linha aérea',local:'Província de Cabinda',provincia:'Cabinda',cliente:'Cliente industrial (petróleo e gás)',perDay:4,crew:[7,12],logN:1,armN:2,rel:['Estaleiro de Cabinda'],
+    trades:[['Eletricista de linhas',5],['Montador de linhas',4],['Eletricista de subestações',2],['Ajudante de eletricista',3],['Servente',3],['Pedreiro',1]],
+    frentes:['Troço AP1 a AP15','Troço AP16 a AP31','Subestação de chegada','Estaleiro de Cabinda'],
+    tasks:['Abertura de covas para apoios','Betonagem das fundações dos apoios','Montagem de postes metálicos treliçados','Desenrolamento de condutores','Regulação e amarração de condutores','Montagem de travessas e cadeias de isoladores','Montagem de pórtico de chegada','Instalação de descarregadores de sobretensão','Ensaios de isolamento e continuidade'],
+    eq:[['Camião grua 12 t','Viatura',1],['Camião de transporte de postes','Viatura',1],['Carrinha 4x4 cabine dupla','Viatura',3],['Autocarro de pessoal','Viatura',1],['Retroescavadora','Máquina',1],['Guincho de desenrolamento de cabo','Máquina',1],['Freio de lançamento','Máquina',1],['Gerador 30 kVA','Máquina',1]],
+    log:['Perfis para postes treliçados','Bobinas de cabo ACSR (3 un)','Cadeias de isoladores','Cimento e inertes','Transporte de pessoal','Gasóleo'],
+    med:[['Fundações de apoios','un',31],['Apoios montados','un',31],['Condutor lançado','km',19],['Pórtico de chegada','un',1]]},
+   {id:'o5',lat:-14.92,lon:13.49,n:60,nome:'Subestação 60/15 kV do Lubango — ampliação',tipo:'Subestação',local:'Província da Huíla',provincia:'Huíla',cliente:'Distribuidora de energia',perDay:3,crew:[6,10],logN:1,armN:1,rel:['Portaria da subestação'],
+    trades:[['Eletricista de subestações',5],['Montador de estruturas metálicas',3],['Pedreiro',2],['Soldador',1],['Ajudante de eletricista',3],['Servente',2]],
+    frentes:['Parque exterior 60 kV','Celas de 15 kV','Edifício de comando','Caleiras de cabos'],
+    tasks:['Montagem de disjuntores 60 kV','Montagem de celas de média tensão','Passagem de cabos de comando e controlo','Montagem de barramentos','Construção de caleiras de cabos','Instalação da malha de terra','Ensaios de proteções','Alvenarias do edifício de comando'],
+    eq:[['Camião grua 8 t','Viatura',1],['Carrinha 4x4 cabine dupla','Viatura',2],['Carrinha de caixa aberta','Viatura',1],['Plataforma elevatória','Máquina',1],['Gerador 60 kVA','Máquina',1],['Máquina de soldar','Máquina',1],['Betoneira','Máquina',1]],
+    log:['Celas de 15 kV (6 un)','Bobinas de cabo de comando','Disjuntores 60 kV (2 un)','Cimento e inertes','Transporte de pessoal'],
+    med:[['Celas 15 kV montadas','un',12],['Equipamento 60 kV montado','un',8],['Cabos de comando','m',4200],['Caleiras','m',260]]},
+   {id:'o6',lat:-14.66,lon:17.69,n:50,nome:'Eletrificação rural MT/BT — Menongue',tipo:'Rede de distribuição',local:'Província do Cuando Cubango',provincia:'Cuando Cubango',cliente:'Município',perDay:3,crew:[5,9],logN:1,armN:1,rel:['Estaleiro de Menongue'],
+    trades:[['Eletricista de redes',5],['Montador',3],['Ajudante de eletricista',3],['Servente',3]],
+    frentes:['Aldeia 1','Aldeia 2','Aldeia 3','Posto de transformação','Estaleiro de Menongue'],
+    tasks:['Abertura de covas para postes','Implantação de postes de baixa tensão','Passagem de cabo torçada','Montagem de posto de transformação aéreo','Execução de ramais domiciliários','Montagem de luminárias de iluminação pública','Ensaios e ligação à rede'],
+    eq:[['Camião grua 8 t','Viatura',1],['Carrinha 4x4 cabine dupla','Viatura',2],['Camião cesto','Viatura',1],['Perfuradora de covas','Máquina',1],['Gerador 30 kVA','Máquina',1]],
+    log:['Postes de betão 9 m (10 un)','Bobinas de cabo torçada','Luminárias LED','Transformador de distribuição 100 kVA','Transporte de pessoal','Gasóleo'],
+    med:[['Postes BT implantados','un',220],['Cabo torçada','km',9],['Luminárias','un',180],['Ramais domiciliários','un',310],['PT aéreos','un',3]]},
+   {id:'o7',lat:-12.78,lon:15.74,n:70,nome:'Linha 220 kV Huambo–Caála, 58 apoios',tipo:'Linha aérea',local:'Província do Huambo',provincia:'Huambo',cliente:'Operador da rede de transporte',perDay:5,crew:[8,13],logN:1,armN:2,rel:['Estaleiro do Huambo'],
+    trades:[['Eletricista de linhas',6],['Montador de linhas',5],['Ajudante de eletricista',3],['Servente',4],['Pedreiro',2],['Soldador',1]],
+    frentes:['Troço AP1 a AP20','Troço AP21 a AP40','Troço AP41 a AP58','Estaleiro do Huambo'],
+    tasks:['Piquetagem do traçado','Desmatação da faixa de proteção','Abertura de covas para apoios','Betonagem das fundações dos apoios','Montagem de postes metálicos treliçados','Montagem de travessas e cadeias de isoladores','Desenrolamento de condutores','Regulação e amarração de condutores','Montagem do cabo de guarda OPGW','Ligação à terra dos apoios'],
+    eq:[['Camião grua 12 t','Viatura',2],['Camião de transporte de postes','Viatura',1],['Carrinha 4x4 cabine dupla','Viatura',3],['Autocarro de pessoal','Viatura',1],['Retroescavadora','Máquina',1],['Guincho de desenrolamento de cabo','Máquina',1],['Freio de lançamento','Máquina',1],['Gerador 30 kVA','Máquina',1],['Betoneira','Máquina',1]],
+    log:['Perfis para postes treliçados','Bobinas de cabo ACSR (6 un)','Cabo OPGW','Cadeias de isoladores','Cimento e inertes','Transporte de pessoal','Gasóleo'],
+    med:[['Fundações de apoios','un',58],['Apoios montados','un',58],['Condutor lançado','km',38],['Cabo OPGW','km',38],['Faixa desmatada','km',38]]}];
+  let wi=0,qi=0,ji=0,gi=0,mi=0,bi=0,ki=0,ni=0,ri2=0,fi=0,hi=0,si=0,pi=0,di=0,ti=0,xi=0;let s3=4242;const R3=()=>{s3=s3+0x6D2B79F5|0;let t=Math.imul(s3^s3>>>15,1|s3);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},r3=(a,b)=>a+Math.floor(R3()*(b-a+1)),p3=a=>a[Math.floor(R3()*a.length)];
+  put('config','primavera',{codFalta:'FALTA_EX',codHExtra:'HEXTRA_EX',codHExtraFDS:'HEXTRA_FDS_EX',tipoProc:'V',moeda:'AKZ',horasMes:176,diasMes:22,vencBase:180000});
+  [['FALTA_EX','F · Falta','Falta injustificada','% do valor-dia × dias',100],['HEXTRA_EX','H · Hora extra','Hora extra em dia útil','% do valor-hora × horas',150],['HEXTRA_FDS_EX','H · Hora extra','Hora extra ao sábado e domingo','% do valor-hora × horas',175],['ABONO_EX','R · Remuneração','Abono de deslocação','Valor fixo',25000],['DESC_EX','D · Desconto','Adiantamento a descontar','Valor unitário × quantidade',10000],['PREMIO_EX','R · Remuneração','Prémio de produtividade','Sem valor','']].forEach((r,i)=>put('rubricas','rb'+(i+1),{codigo:r[0],tipo:r[1],descricao:r[2],calculo:r[3],valor:r[4],nome:r[0]+' · '+r[2]}));
+  // fornecedores e armazém central (globais)
+  const FOR=FORN.map((f,i)=>{const id='f'+(i+1);put('fornecedores',id,{nome:f[0],categoria:f[1],nif:'54'+String(10000000+r3(0,89999999)),telefone:'9'+r3(20,99)+' '+r3(100,999)+' '+r3(100,999),email:'geral@'+f[0].toLowerCase().replace(/[^a-z]+/g,'').slice(0,12)+'.ao',local:p3(['Luanda','Viana','Cacuaco','Benguela','Lobito']),prazoDias:p3([3,5,7,10,15,30]),avaliacao:p3(['A','A','B','B','C']),estado:'Ativo'});return{id,...f}});
+  put('armazens','ac',{nome:'Armazém Central — Viana (Luanda)',tipo:'Central',local:'Zona Industrial de Viana, Luanda',obra:'',responsavel:'Fiel de armazém central',estado:'Ativo'});
+  const STK=[...ARM.map(a=>[a[0],a[1],a[2]*8,a[3]*8]),['Cabo de alumínio-aço ACSR','m',3000,20000],['Postes de betão 12 m','un',20,120],['Postes de betão 9 m','un',30,160],['Isoladores poliméricos 60 kV','un',60,400],['Cadeias de isoladores','un',40,300],['Cabo torçada 4x70','m',1000,8000],['Luminárias LED','un',40,300],['Ferragens para linhas','conj',30,200]];
+  STK.forEach(a=>put('stock','s'+(++si),{armazem:'ac',obra:'',artigo:a[0],unidade:a[1],qtd:r3(a[2],a[3]),minimo:a[2],local:'Corredor '+p3(['A','B','C','D'])+'-'+r3(1,12)}));
+  OB.forEach(o=>{
+    put('obras',o.id,{nome:o.nome,codigo:'OB-2026-'+z(+o.id.slice(1)),tipo:o.tipo,local:o.local,provincia:o.provincia,cliente:o.cliente,inicio:dd(-ri(60,140)),fim:dd(ri(120,300)),estado:'Em curso',hEntrada:'07:00',hSaida:'16:00',pausa:60,tolerancia:10,hSab:0,lat:o.lat,lon:o.lon});
+    const nCh=Math.ceil(o.n/15),W=[];
+    const fixed=['Encarregado geral',...Array(nCh).fill('Chefe de equipa'),...Array(Math.ceil(o.n/22)).fill('Motorista'),...Array(Math.ceil(o.n/28)).fill('Operador de máquinas'),...Array(Math.ceil(o.n/60)).fill('Operador de grua'),...Array(Math.ceil(o.n/70)).fill('Técnico de segurança'),...Array(Math.ceil(o.n/100)).fill('Fiel de armazém'),'Topógrafo'];
+    const bag=[];o.trades.forEach(([f,w])=>{for(let i=0;i<w;i++)bag.push(f)});
+    for(let i=0;i<o.n;i++){const f=fixed[i]||pick(bag),id='w'+(++wi);
+      const eqp=f==='Motorista'?'Logística':f==='Fiel de armazém'?'Armazém':f==='Técnico de segurança'?'HST':f==='Encarregado geral'||f==='Topógrafo'?'Direção de obra':'Equipa '+ri(1,nCh);
+      const est=i===0||R()<.93?'Ativo':pick(['Férias','Ausente']);
+      put('trabalhadores',id,{obra:o.id,nome:pick(FN)+' '+pick(SN)+(R()<.5?' '+pick(SN):''),numPonto:String(i+1),codPrim:String(wi).padStart(4,'0'),vencimento:f==='Encarregado geral'?650000:f.startsWith('Chefe')?380000:/Operador|Eletricista|Soldador|Topógrafo|Técnico/.test(f)?260000:/Motorista|Montador|Pedreiro|Armador/.test(f)?210000:150000,funcao:f,equipa:eqp,telefone:'900 000 '+String(wi).padStart(3,'0'),estado:est});
+      W.push({id,f,est,n:String(i+1)})}
+    const act=W.filter(w=>w.est==='Ativo'),mot=act.filter(w=>w.f==='Motorista'),ops=act.filter(w=>w.f.startsWith('Operador')),chf=act.filter(w=>w.f==='Chefe de equipa'||w.f==='Fiel de armazém');
+    const E=[];
+    o.eq.forEach(([nm,tp,ct])=>{for(let k=1;k<=ct;k++){const id='q'+(++qi),r=R(),est=r<.05?'Avariado':r<.12?'Manutenção':r<.55?'Em uso':'Disponível';
+      put('equipamentos',id,{obra:o.id,nome:nm+(ct>1?' nº '+k:''),tipo:tp,grupo:GRUPO(nm),matricula:tp==='Viatura'?'LD-'+ri(10,99)+'-'+ri(10,99)+'-'+pick(['AA','AC','BD','CF','HG','IA']):'EQ-'+String(qi).padStart(3,'0'),estado:est,operador:(tp==='Viatura'?pick(mot):pick(ops)).id,local:est==='Manutenção'||est==='Avariado'?'Estaleiro':pick(o.frentes),proxManut:dd(ri(-4,70)),km:tp==='Viatura'?ri(12000,240000):null,combustivel:'Gasóleo'});
+      E.push({id,tp,est,nm,odo:r3(20000,200000),rate:/Autocarro|Camião|Grua/.test(nm)?r3(28,38):/Carrinha de caixa/.test(nm)?r3(14,18):r3(10,14)})}});
+    const usable=E.filter(e=>e.est!=='Avariado'&&e.est!=='Manutenção'),vt=usable.filter(e=>e.tp==='Viatura');
+    // armazém de obra e stock
+    const aid='a'+o.id.slice(1);put('armazens',aid,{nome:'Armazém de obra — '+o.provincia,tipo:'Obra',local:o.frentes[o.frentes.length-1],obra:o.id,responsavel:'Fiel de armazém da obra',estado:'Ativo'});
+    shuf(ARM).slice(0,15).forEach(a=>put('stock','s'+(++si),{armazem:aid,obra:o.id,artigo:a[0],unidade:a[1],qtd:r3(0,a[3]),minimo:a[2],local:'Prateleira '+r3(1,20)}));
+    for(let k=0;k<9;k++){const a=p3(STK);const n=r3(-12,2);put('transferencias','t'+(++ti),{obra:o.id,de:'ac',para:aid,artigo:a[0],unidade:a[1],qtd:r3(a[2]/4|0||1,a[2]),data:dd(n),pedidoPor:p3(chf).id,viatura:vt.length?p3(vt).id:'',estado:n<-6?'Recebida':n<-2?'Em trânsito':n<0?'Aprovada':'Pedida'})}
+    vt.forEach(v=>{const l=r3(40,120);put('combustivel','c'+(++xi),{obra:o.id,data:dd(-9),viatura:v.id,motorista:p3(mot).id,litros:l,valor:l*300,km:v.odo,posto:'Posto Sonangol',tipo:'Gasóleo'})});
+    DAYS.forEach(n=>{
+      const pool=shuf(act.filter(w=>w.f!=='Motorista'&&w.f!=='Fiel de armazém').map(w=>w.id));
+      for(let k=0;k<o.perDay;k++){const crew=pool.splice(0,ri(o.crew[0],o.crew[1]));if(!crew.length)break;
+        put('tarefas','j'+(++ji),{obra:o.id,titulo:pick(o.tasks),data:dd(n),hora:pick(['07:00','07:00','07:30','08:00','13:00']),frente:pick(o.frentes),responsaveis:crew,equipamentos:shuf(usable).slice(0,ri(1,2)).map(e=>e.id),prioridade:R()<.1?'Urgente':'Normal',estado:n<0?(R()<.92?'Concluída':'Em curso'):n===0?pick(['Em curso','Em curso','Pendente','Concluída']):'Pendente'})}
+      for(let k=0;k<o.logN;k++)put('logistica','g'+(++gi),{obra:o.id,descricao:pick(o.log),data:dd(n),origem:pick(['Armazém central (Luanda)','Porto de Luanda','Fornecedor','Estaleiro']),destino:pick(o.frentes),viatura:pick(vt).id,motorista:pick(mot).id,estado:n<0?'Entregue':n===0?pick(['Em trânsito','Planeado','Entregue']):'Planeado'});
+      if(n<=1)for(let k=0;k<o.armN;k++){const a=pick(ARM);put('armazem','m'+(++mi),{obra:o.id,artigo:a[0],qtd:ri(a[2],a[3]),unidade:a[1],data:dd(n),frente:pick(o.frentes),pedidoPor:pick(chf).id,estado:n<0?(R()<.08?'Sem stock':'Entregue'):n===0?pick(['Em preparação','Pedido','Entregue']):'Pedido'})}
+      if(n<=0){const reg=[],sab=new Date(dd(n)+'T12:00').getDay()===6;
+        act.forEach(w=>{if(R2()>=(sab?.55:.95))return;reg.push({n:w.n,h:hm(R2()<.08?431+r2(0,40):395+r2(0,33))});
+          if(n<0){const x=R2();reg.push({n:w.n,h:hm(sab?720+r2(0,60):x<.05?870+r2(0,60):x<.75?960+r2(0,9):1020+r2(0,120))})}});
+        put('ponto',o.id+'_'+dd(n),{obra:o.id,dia:dd(n),registos:reg})}
+      if(n<=0&&vt.length){for(let k=0;k<Math.max(2,Math.round(vt.length/2));k++){const v=p3(vt),dk=r3(60,380),l=Math.round(dk*v.rate/100*10)/10;v.odo+=dk;put('combustivel','c'+(++xi),{obra:o.id,data:dd(n),viatura:v.id,motorista:p3(mot).id,litros:l,valor:Math.round(l*p3([300,300,320])),km:v.odo,posto:p3(['Posto da obra (depósito)','Posto Sonangol','Posto Pumangol']),tipo:'Gasóleo'})}}
+    });
+    for(let k=0;k<14;k++){const c=pick(COMP),q=ri(c[2],c[3]);put('compras','b'+(++bi),{obra:o.id,artigo:c[0],qtd:q,unidade:c[1],fornecedor:p3(FOR).id,valor:q*c[4],data:dd(-ri(0,25)),prazo:dd(ri(2,30)),solicitante:W[0].id,requisicao:'',estado:pick(['Pedido','Aprovado','Encomendado','Encomendado','Recebido','Recebido'])})}
+    for(let k=0;k<14;k++){const c=p3(COMP.concat(ARM.map(a=>[a[0],a[1],a[2],a[3],0]))),n=r3(-20,1);put('requisicoes','r'+(++ri2),{obra:o.id,numero:'REQ-'+o.id.slice(1)+'-'+String(ri2).padStart(3,'0'),data:dd(n),artigo:c[0],qtd:r3(c[2],c[3]),unidade:c[1],frente:p3(o.frentes),pedidoPor:p3(chf).id,urgencia:p3(['Normal','Normal','Urgente']),destino:p3(['Armazém de obra','Armazém central','Compra']),estado:n<-12?p3(['Satisfeita','Satisfeita','Recusada']):n<-5?p3(['Em compra','Satisfeita','Aprovada']):n<0?p3(['Aprovada','Pedida']):'Pedida'})}
+    [['R · Remuneração','ABONO_EX',r3(15000,60000),'Abono de deslocação'],['R · Remuneração','ABONO_EX',r3(15000,60000),'Abono de deslocação'],['D · Desconto','DESC_EX',r3(5000,20000),'Adiantamento a descontar'],['R · Remuneração','PREMIO_EX',r3(20000,80000),'Prémio de produtividade'],['D · Desconto','DESC_EX',r3(5000,20000),'Desconto de EPI extraviado'],['D · Desconto','DESC_EX',r3(5000,20000),'Adiantamento a descontar'],['R · Remuneração','PREMIO_EX',r3(20000,80000),'Prémio de produtividade']].forEach(x=>put('rh','n'+(++ni),{obra:o.id,tipo:x[0],codigo:x[1],trab:act[r3(1,act.length-1)].id,tipoProc:'V',data:dd(-r3(0,6)),qtd:1,valor:x[2],obs:x[3]}));
+    o.rel.forEach((l,i)=>put('relogios','k'+(++ki),{obra:o.id,nome:'Terminal SmartPonto '+(i+1),local:l,modelo:'Tablet · SmartPonto (facial + impressão digital)',ip:'192.168.'+o.id.slice(1)+'.'+(201+i)}));
+    // HST
+    const HT=[['Entrega de EPI','Entrega de capacetes, luvas isolantes e arneses à equipa','Baixa'],['Inspeção','Inspeção semanal de andaimes e plataformas','Baixa'],['Formação','Formação de trabalhos em altura e resgate','Baixa'],['Quase-acidente','Queda de ferramenta de apoio sem atingir ninguém','Média'],['Incidente','Corte na mão durante a montagem de ferragens','Média'],['Inspeção','Verificação de extintores e caixas de primeiros socorros','Baixa'],['Incidente','Contacto com vegetação durante desmatação — reação alérgica','Baixa'],['Quase-acidente','Viatura em marcha-atrás sem sinaleiro','Alta'],['Formação','Palestra diária de segurança (toolbox talk)','Baixa'],['Inspeção','Auditoria de bloqueio e consignação elétrica','Média']];
+    for(let k=0;k<14;k++){const h=p3(HT),n=r3(-14,0);put('hst','h'+(++hi),{obra:o.id,data:dd(n),tipo:h[0],frente:p3(o.frentes),descricao:h[1],gravidade:h[2],trabalhador:p3(act).id,responsavel:(W.find(w=>w.f==='Técnico de segurança')||W[0]).id,estado:h[0]==='Incidente'||h[0]==='Quase-acidente'?(n<-7?'Fechado':p3(['Aberto','Em análise'])):'Fechado'})}
+    // subempreiteiros
+    shuf(SUB).slice(0,r3(4,6)).forEach(nm=>put('subempreiteiros','u'+(++si),{obra:o.id,nome:nm,especialidade:nm.split(' ')[0],contrato:'SUB-'+o.id.slice(1)+'-'+r3(10,99),inicio:dd(-r3(30,120)),fim:dd(r3(20,150)),trabalhadores:r3(4,25),responsavel:p3(FN)+' '+p3(SN),telefone:'9'+r3(20,99)+' '+r3(100,999)+' '+r3(100,999),valor:r3(8,60)*1000000,estado:p3(['Ativo','Ativo','Ativo','Suspenso'])}));
+    // avanço e medições
+    o.med.forEach((m,i)=>{const fin=r3(30,95);[0.35,0.7,1].forEach((f,k)=>{const pct=Math.round(fin*f);put('progresso','p'+(++pi),{obra:o.id,frente:o.frentes[(i+k)%o.frentes.length],atividade:m[0],unidade:m[1],previsto:m[2],executado:Math.round(m[2]*pct/100),data:dd(-(21-k*7)+r3(0,2)),auto:'AM-'+z(k+1),estado:k<2?'Faturado':pct>80?'Medido':'Em curso'})});
+      put('progresso','p'+(++pi),{obra:o.id,frente:o.frentes[0],atividade:m[0]+' — trecho seguinte',unidade:m[1],previsto:Math.round(m[2]*.4),executado:0,data:dd(-r3(0,3)),auto:'',estado:'Em curso'})});
+    // documentos e validades
+    const DT=['Certificado de trabalhos em altura','Certificado de eletricista (BT/MT)','Exame médico de aptidão','Carta de condução','Formação de primeiros socorros'];
+    shuf(act).slice(0,Math.min(30,act.length)).forEach(w=>{const t=p3(DT);put('documentos','d'+(++di),{obra:o.id,tipo:t,trabalhador:w.id,equipamento:'',numero:'DOC-'+r3(1000,9999),emissao:dd(-r3(100,700)),validade:dd(r3(-20,400)),entidade:p3(['Centro de formação','Clínica ocupacional','Direção de Viação','Entidade certificadora']),notas:''})});
+    E.filter(e=>e.tp==='Viatura').forEach(e=>{put('documentos','d'+(++di),{obra:o.id,tipo:'Seguro de viatura',trabalhador:'',equipamento:e.id,numero:'AP-'+r3(100000,999999),emissao:dd(-r3(30,330)),validade:dd(r3(-10,340)),entidade:'Seguradora',notas:''});
+      put('documentos','d'+(++di),{obra:o.id,tipo:'Inspeção periódica',trabalhador:'',equipamento:e.id,numero:'IP-'+r3(10000,99999),emissao:dd(-r3(30,330)),validade:dd(r3(-10,340)),entidade:'Centro de inspeção',notas:''})});
+  });
+  [['u1','Administrador ENERLINE','Administrador','Direção de sistemas',[]],['u2','Eng. Sofia Mendes','Diretor de obra','Diretora de obra — subestações',[]],['u3','Eng. Miguel Chefe','Diretor de obra','Diretor de obra — linhas',['o2','o4','o7']],['u4','Carlos Bento','Encarregado','Encarregado geral — Luanda',['o1']],['u5','Domingos Cassule','Encarregado','Encarregado — Cabinda',['o4']],['u6','Francisco Ngola','Encarregado','Encarregado — Lubango',['o5']],['u7','Mateus Samba','Encarregado','Encarregado — Menongue',['o6']],['u8','Teresa Armazém','Fiel de armazém','Fiel do armazém central',[]],['u9','Paulo Compras','Compras','Responsável de compras',[]],['u10','Rui Recursos Humanos','RH','Recursos humanos',[]],['u11','Carla Pessoal','RH','Processamento salarial',[]],['u12','Isabel Quintas','Técnico HST','Técnica de segurança e saúde',[]],['u13','Ana Direção','Consulta (só leitura)','Administração — consulta',[]]].forEach(u=>put('utilizadores',u[0],{nome:u[1],perfil:u[2],cargo:u[3],obras:u[4],email:u[1].toLowerCase().replace(/[^a-z]+/g,'.').replace(/^\.|\.$/g,'')+'@enerline.ao',telefone:'9'+r3(20,99)+' '+r3(100,999)+' '+r3(100,999),estado:'Ativo'}));
+  put('config','demo',{v:6});
+  return out;
+}
+
+/* ---------- eventos ---------- */
+{const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(()=>{const i=document.querySelector('.pwf input');if(i)i.focus()},0);return r}}
+document.addEventListener('submit',e=>{const f=e.target.closest&&e.target.closest("[data-pwd]");if(!f)return;e.preventDefault();const id=f.getAttribute("data-pwd"),u=data.utilizadores[id];if(!u)return;const v=f.querySelector('input').value;
+  if(v!==String(u.senha||'123')){st.perr=1;render();return}
+  st.pend='';st.perr=0;st.umenu=false;st.user=id;try{localStorage.setItem('enerline_user',id)}catch(x){}const o=rows('obras')[0];if(!data.obras[st.obra]||!obraOk(st.obra))setObra(o?o.id:'');st.view='hoje';render()});
+document.addEventListener('click',async e=>{
+  const t=e.target,g=a=>{const x=t.closest('['+a+']');return x?x.getAttribute(a):null};
+  const dg=t.closest('[data-danger]');
+  if(dg&&!dg.classList.contains('armed')){e.preventDefault();e.stopPropagation();const o=dg.textContent;dg.classList.add('armed');dg.textContent='Confirmar?';setTimeout(()=>{if(dg.isConnected){dg.classList.remove('armed');dg.textContent=o}},3500);return}
+  let v;
+  if(g('data-umenu')){st.umenu=!st.umenu;st.pend='';st.perr=0;render();return}
+  if(e.target.closest&&e.target.closest('[data-pick]')){st.pend=e.target.closest('[data-pick]').getAttribute('data-pick');st.perr=0;render();return}
+  if((v=g('data-login'))){st.umenu=false;st.user=v;try{localStorage.setItem('enerline_user',v)}catch(x){}const f=rows('obras')[0];if(!data.obras[st.obra]||!obraOk(st.obra))setObra(f?f.id:'');st.view='hoje';render();return}
+  if(g('data-switch')){st.user='';try{localStorage.removeItem('enerline_user')}catch(x){}render();return}
+  if(!canEdit()&&(g('data-new')||g('data-edit')||g('data-del')||g('data-cycle')||g('data-punch')||g('data-import')||g('data-just')||g('data-demoupd')||g('data-delobra')||g('data-demo')||g('data-place')||g('data-prim')&&false)){e.preventDefault();toast('O seu perfil é só de consulta.');return}
+  if(g('data-close')){$('#dlg').close();return}
+  if((v=g('data-del'))){const[c,id]=v.split(':');$('#dlg').close();
+    if(c==='obras'){if(id!==st.obra)return toast('Abra a obra antes de a apagar.');await delObra(id);return}
+    await del(c,id);toast('Apagado');return}
+  if(g('data-delobra')){await delObra(st.obra);return}
+  if(g('data-demo')){const b=t.closest('[data-demo]');b.disabled=true;b.textContent='A carregar…';await loadDemo();return}
+  if((v=g('data-obra'))){setObra(v);return}
+  if((v=g('data-delp'))){const[k,h]=v.split('|');const cur=punches(st.day).filter(p=>!(p.n===k&&p.h===h));await savePunches(st.day,cur);return}
+  if((v=g('data-cycle'))){e.stopPropagation();const o={...data.tarefas[v]},l=['Pendente','Em curso','Concluída'];o.estado=l[(l.indexOf(o.estado||'Pendente')+1)%3];save('tarefas',v,o);return}
+  const mp=t.closest&&t.closest('#map');
+  if(mp&&st.dragged)return;
+  if(mp&&st.placing){const pt=mp.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const q=pt.matrixTransform(mp.getScreenCTM().inverse());
+    st.placing=false;save('obras',st.sel,{...data.obras[st.sel],lat:+(-(q.y/40+4)).toFixed(4),lon:+(q.x/39.2+11.2).toFixed(4)});toast('Localização guardada');return}
+  if((v=g('data-mk'))){st.sel=v;render();return}
+  if((v=g('data-zoom'))){const b=st.vb||[0,0,MW,MH];if(v==='0')st.vb=null;else{const w=Math.min(MW,Math.max(40,b[2]*+v)),h=w*MH/MW;const o=data.obras[st.sel],cx=o&&hasLoc(o)?px(+o.lon):b[0]+b[2]/2,cy=o&&hasLoc(o)?py(+o.lat):b[1]+b[3]/2;st.vb=w>=MW?null:[cx-w/2,cy-h/2,w,h]}render();return}
+  if((v=g('data-place'))){st.placing=v==='1';render();return}
+  if(g('data-refresh')){st.statsAt=0;render();return}
+  if((v=g('data-abrir'))){st.view='hoje';try{history.replaceState(null,'','#hoje')}catch(x){}setObra(v);return}
+  if(g('data-demoupd')){checkDemo(true);return}
+  if((v=g('data-chip'))){const i=v.indexOf(':'),c=v.slice(0,i),x=v.slice(i+1);st.fl[c]=x==='*'?'':x;render();return}
+  if(g('data-bio')){const fn='SmartPonto-ENERLINE-demo.html',h=await spHtml();if(dl){try{await dl.save({filename:fn,data:h});toast('Ficheiro guardado')}catch(x){if(x&&x.code!=='declined')toast('Não foi possível guardar aqui.')}}else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download=fn;a.click()}return}
+  if((v=g('data-nav'))){e.preventDefault();st.view=v;try{history.replaceState(null,'','#'+v)}catch(x){}render();return}
+  if((v=g('data-new'))){openForm(v);return}
+  if((v=g('data-res'))){e.preventDefault();if($('#dlg').open)$('#dlg').close();st.res=v;st.view='plano';try{history.replaceState(null,'','#plano')}catch(x){}render();const s=$('#ressel');if(s)s.scrollIntoView({block:'start'});return}
+  if((v=g('data-month'))){if(v==='0')st.month=today().slice(0,7);else{const[y,m]=st.month.split('-').map(Number),d=new Date(y,m-1+ +v,1);st.month=d.getFullYear()+'-'+p2(d.getMonth()+1)}render();return}
+  if((v=g('data-pm'))){st.pm=v;render();return}
+  if((v=g('data-rhg'))){st.rhGroup=v==='1';render();return}
+  if((v=g('data-rhall'))){st.rhAll=v==='1';render();return}
+  if((v=g('data-rhgb'))){st.rhGroupBy=v;render();return}
+  if(g('data-rhclear')){st.rhF={t:'',src:'',w:''};render();return}
+  if((v=g('data-prim'))){exportPrim(v);return}
+  if(g('data-cfg')){cfgForm();return}
+  if((v=g('data-pv'))){st.pv=v;render();return}
+  if((v=g('data-pw'))){st.pw=v;render();const f=$('#folha');if(f)f.scrollIntoView({block:'start'});return}
+  if((v=g('data-goponto'))){st.day=v;st.pv='dia';render();return}
+  if((v=g('data-just'))){justForm(v);return}
+  if((v=g('data-goday'))){st.day=v;st.view='tarefas';try{history.replaceState(null,'','#tarefas')}catch(x){}render();return}
+  if((v=g('data-day'))){st.day=v==='0'?today():addDay(st.day,+v);render();return}
+  if(g('data-copy')){const tx=distText();try{await navigator.clipboard.writeText(tx);toast('Distribuição copiada. Cole no WhatsApp ou email.')}catch(x){showText(tx)}return}
+  if((v=g('data-csv'))){exportCsv(v);return}
+  if(g('data-punch')){punchForm();return}
+  if(g('data-import')){$('#pfile').value='';$('#pfile').click();return}
+  if((v=g('data-edit'))){const[c,id]=v.split(':');openForm(c,id);return}
+});
+let drag=null;
+document.addEventListener('pointerdown',e=>{const m=e.target.closest&&e.target.closest('#map');if(m)drag={x:e.clientX,y:e.clientY,vb:(st.vb||[0,0,MW,MH]).slice(),k:(st.vb||[0,0,MW,MH])[2]/m.clientWidth,moved:false}});
+document.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(!drag.moved&&Math.abs(dx)+Math.abs(dy)<5)return;drag.moved=true;
+  st.vb=[drag.vb[0]-dx*drag.k,drag.vb[1]-dy*drag.k,drag.vb[2],drag.vb[3]];const m=$('#map');if(m)m.setAttribute('viewBox',st.vb.join(' '))});
+document.addEventListener('pointerup',()=>{if(drag&&drag.moved){st.dragged=true;setTimeout(()=>{st.dragged=false},50)}drag=null});
+document.addEventListener('input',e=>{if(e.target.id==='q')filter();
+  const k=e.target.getAttribute&&e.target.getAttribute('data-ckq');if(k){const q=e.target.value.toLowerCase();document.querySelectorAll('#'+k+' label').forEach(l=>{l.hidden=!!q&&!l.textContent.toLowerCase().includes(q)})}});
+document.addEventListener('change',e=>{if(e.target.id==='f_foto_file'&&e.target.files[0]){const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),k=$('#fprev').classList.contains('v')?[128,84]:[96,96];c.width=k[0];c.height=k[1];const x=c.getContext('2d'),r=Math.max(k[0]/im.width,k[1]/im.height),w=im.width*r,h=im.height*r;x.drawImage(im,(k[0]-w)/2,(k[1]-h)/2,w,h);const u=c.toDataURL('image/jpeg',.72);$('#f_foto').value=u;$('#fprev').src=u};im.src=fr.result};fr.readAsDataURL(e.target.files[0]);return}
+  if(e.target.id==='obrasel'){setObra(e.target.value);return}
+  if(e.target.dataset&&e.target.dataset.rhf){st.rhF[e.target.dataset.rhf]=e.target.value;render();return}
+  if(e.target.dataset&&e.target.dataset.rhs){st.rhSort=e.target.value;render();return}if(e.target.id==='ressel'){st.res=e.target.value;render();return}if(e.target.id==='dayin'&&e.target.value){st.day=e.target.value;render()}});
+$('#pfile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=async()=>{const{days,total}=parsePunches(String(r.result));const ks=Object.keys(days).sort();
+    if(!total)return toast('Não encontrei picagens no ficheiro. Cada linha precisa de número, data e hora.');
+    let added=0;for(const d of ks)added+=await addPunches(d,days[d],f.name);
+    st.day=ks[ks.length-1];render();toast(`${added} picagens novas importadas de ${ks.length} dias (${total-added} já existiam).`)};
+  r.readAsText(f)});
+boot();
+</script>
+
+</body></html>
