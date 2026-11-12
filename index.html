@@ -71,7 +71,7 @@ button.pill{cursor:pointer}
 .banner .btn.armed{color:#fff}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:4px}
-.tile.lnk,.br.lnk{cursor:pointer}.tile.lnk:hover{border-color:var(--brand)}.br.lnk:hover{background:var(--neu-bg);border-radius:4px}.gfbar{margin:0 0 10px;font-size:14px}
+.tile.lnk,.br.lnk{cursor:pointer}.tile.lnk:hover{border-color:var(--brand)}.br.lnk:hover{background:var(--neu-bg);border-radius:4px}.gfbar{margin:0 0 10px;font-size:14px}.stkbox{margin:12px 0 4px;padding:10px 12px;border-radius:6px;background:var(--neu-bg);font-size:14px;line-height:1.4}.stkbox.ok{background:var(--ok-bg)}.stkbox.warn{background:var(--warn-bg)}.stkbox.bad{background:var(--bad-bg)}.stkauto{display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 8px}
 .tile b{font:700 38px/1 var(--display)}
 .tile b i{font-style:normal;font-size:20px;color:var(--muted)}
 .tile b.money{font-size:26px;overflow-wrap:anywhere}
@@ -813,6 +813,15 @@ function filter(){const q=$('#q').value.toLowerCase();document.querySelectorAll(
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},3500)}
 
 /* ---------- formulários ---------- */
+function stockCheck(art,q){const k=String(art||'').trim().toLowerCase();q=+q||0;if(!k)return null;
+  const L=Object.values(data.stock).filter(r=>String(r.artigo||'').toLowerCase()===k),ob=Object.entries(data.armazens).filter(([,a])=>a.obra===st.obra).map(([i])=>i);
+  const sum=f=>L.filter(f).reduce((t,r)=>t+(+r.qtd||0),0),inObra=sum(r=>ob.includes(r.armazem)),inCentral=sum(r=>r.armazem==='ac'),inOutras=sum(r=>!ob.includes(r.armazem)&&r.armazem!=='ac');
+  const un=(L[0]&&L[0].unidade)||'';let acao,msg;
+  if(q<=0)return{inObra,inCentral,inOutras,un,acao:'',msg:`Em stock: ${inObra} na obra, ${inCentral} no armazém central.`};
+  if(inObra>=q){acao='obra';msg=`Há stock na obra (${inObra} ${un}). O armazém da obra pode satisfazer o pedido.`}
+  else if(inObra+inCentral>=q){acao='transf';msg=`Na obra há ${inObra} ${un}; no armazém central há ${inCentral}. Falta ${q-inObra} ${un}: será pedida uma transferência do armazém central.`}
+  else{acao='compra';const f=q-inObra-inCentral;msg=`Sem stock suficiente (obra ${inObra}, central ${inCentral}${inOutras?`, outros armazéns ${inOutras}`:''}). Será criado um pedido de compra de ${f} ${un}.`}
+  return{inObra,inCentral,inOutras,un,acao,msg,falta:acao==='transf'?q-inObra:acao==='compra'?q-inObra-inCentral:0,ob}}
 function openForm(c,id,custom){
   if(!custom&&c!=='obras'&&!GL.includes(c)&&!data.obras[st.obra])return toast('Crie ou escolha primeiro uma obra.');
   const s=custom||S[c],o=id?data[c][id]:(custom?custom.init:{data:st.view==='tarefas'||st.view==='ponto'?st.day:today(),estado:(fld(c,'estado')||{opts:[]}).opts[0],prioridade:'Normal',tipo:'Máquina',hEntrada:'07:00',hSaida:'16:00',pausa:60,tolerancia:10,hSab:0});
@@ -829,6 +838,7 @@ function openForm(c,id,custom){
     return `<input ${i} type="${f.type||'text'}" value="${esc(v)}"${f.req?' required':''}${f.type==='number'?' step="any"'+(f.neg?'':' min="0"'):''}>`};
   const FS=s.fields.filter(f=>!f.calc);
   $('#dlg').innerHTML=`<form id="frm"><h2>${id?'Editar':esc(s.novo)}</h2><div class="fields">${FS.map(f=>f.refs?`<div class="${f.wide?'wide':''}"><label>${esc(f.l)}</label>${inp(f)}</div>`:`<label class="${f.wide?'wide':''}">${esc(f.l)}${inp(f)}</label>`).join('')}</div>
+  ${(c==='armazem'||c==='requisicoes')&&!custom?`<div id="stk" class="stkbox" aria-live="polite"></div>${c==='armazem'&&!id?'<label class="stkauto"><input type="checkbox" id="f_auto" checked> Criar automaticamente a transferência ou o pedido de compra</label>':''}`:''}
   <div class="actions">${id?`<button type="button" class="btn danger" data-danger data-del="${c}:${id}">${c==='obras'?'Apagar obra e os seus dados':'Apagar'}</button>`:''}${id&&(c==='trabalhadores'||c==='equipamentos')?`<button type="button" class="btn ghost" data-res="${c}:${id}">Ver ficha de uso</button>`:''}<button type="button" class="btn ghost" data-close="1">Cancelar</button><button class="btn">Guardar</button></div></form>`;
   $('#frm').onsubmit=e=>{e.preventDefault();const n={};
     FS.forEach(f=>{if(f.refs)n[f.k]=[...document.querySelectorAll(`#f_${f.k} input:checked`)].map(x=>x.value);else{const v=$('#f_'+f.k).value.trim();if(v!=='')n[f.k]=f.type==='number'?+v:v}});
@@ -839,8 +849,16 @@ function openForm(c,id,custom){
     if(c==='transferencias')applyTransfer(id?data[c][id]:null,n);
     if(c==='rubricas')n.nome=n.codigo+(n.descricao?' · '+n.descricao:'');if(id&&o.exemplo)n.exemplo=true;
     if(!custom&&n.artigo&&c!=='artigos'&&!rows('artigos').some(a=>(a.nome||'').toLowerCase()===n.artigo.toLowerCase()))save('artigos','a'+uid(),{nome:n.artigo,unidade:n.unidade||'',categoria:''});
-    const nid=id||uid();save(c,nid,n);toast('Guardado');if(c==='obras'&&!id)setObra(nid)};
+    let extra='';
+    if(c==='armazem'&&!id){const r=stockCheck(n.artigo,n.qtd),auto=$('#f_auto')&&$('#f_auto').checked;
+      if(r&&r.acao==='transf'){n.estado='Pedido';if(auto&&r.ob&&r.ob.length){save('transferencias','t'+uid(),{obra:st.obra,de:'ac',para:r.ob[0],artigo:n.artigo,unidade:n.unidade||r.un||'',qtd:r.falta,data:today(),pedidoPor:n.pedidoPor||'',estado:'Pedida'});extra=' Transferência do armazém central pedida.'}}
+      else if(r&&r.acao==='compra'){n.estado='Sem stock';if(auto){save('compras','b'+uid(),{obra:st.obra,artigo:n.artigo,qtd:r.falta,unidade:n.unidade||r.un||'',fornecedor:'',valor:0,data:today(),prazo:'',solicitante:n.pedidoPor||'',requisicao:'',estado:'Pedido'});extra=' Pedido de compra criado.'}}}
+    const nid=id||uid();save(c,nid,n);toast('Guardado.'+extra);if(c==='obras'&&!id)setObra(nid)};
   {const ai=$('#f_artigo'),ui=$('#f_unidade');if(ai&&ui)ai.addEventListener('change',()=>{const a=rows('artigos').find(x=>(x.nome||'').toLowerCase()===ai.value.trim().toLowerCase());if(a&&a.unidade&&!ui.value.trim())ui.value=a.unidade})}
+  if((c==='armazem'||c==='requisicoes')&&!custom){const upd=()=>{const r=stockCheck($('#f_artigo').value,$('#f_qtd').value),b=$('#stk');if(!r){b.className='stkbox';b.textContent='Escolha o artigo para ver o stock disponível.';return}
+      b.className='stkbox '+(r.acao==='obra'?'ok':r.acao==='transf'?'warn':r.acao==='compra'?'bad':'');b.textContent=r.msg;
+      if(c==='requisicoes'&&r.acao){const d=$('#f_destino');if(d&&!id)d.value=r.acao==='obra'?'Armazém de obra':r.acao==='transf'?'Armazém central':'Compra'}};
+    ['f_artigo','f_qtd'].forEach(i=>{const e=$('#'+i);e&&['input','change'].forEach(ev=>e.addEventListener(ev,upd))});upd()}
   $('#dlg').showModal();
 }
 function applyTransfer(prev,n){if(n.estado!=='Recebida'||(prev&&prev.estado==='Recebida'))return;
