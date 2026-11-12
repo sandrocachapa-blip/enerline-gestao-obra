@@ -416,7 +416,7 @@ function consumo(list){const by={};list.forEach(r=>(by[r.viatura]=by[r.viatura]|
   Object.values(by).forEach(a=>{a.sort((x,y)=>(x.km||0)-(y.km||0));a.forEach((r,i)=>{const p=a[i-1],d=p?(r.km||0)-(p.km||0):0;r.percorrido=d>0?fk(d)+' km':'—';r.kmd=d>0?d:0;r.l100=d>0?(+r.litros||0)/d*100:null;r.media=r.l100!=null?r.l100.toFixed(1).replace('.',',')+' L/100 km':'—'})});return list}
 const me=()=>st.user&&data.utilizadores[st.user];
 const perf=()=>{const u=me();return PERF[u?u.perfil:'Administrador']||PERF['Consulta (só leitura)']};
-const pwForm=id=>{const u=data.utilizadores[id];if(!u)return '';return `<form class="pwf" data-pwd="${id}"><strong>${esc(u.nome)}</strong><span class="meta">${esc(u.perfil)}</span><input type="password" name="pw" placeholder="Palavra-passe" autocomplete="off" autofocus>${st.perr?'<em class="perr">Palavra-passe errada</em>':''}<span><button class="btn" type="submit">Entrar</button> <button class="btn ghost" type="button" data-pick="">Cancelar</button></span></form>`};
+const pwForm=id=>{const u=data.utilizadores[id];if(!u)return '';return `<form class="pwf" data-pwd="${id}"><strong>${esc(u.nome)}</strong><span class="meta">${esc(u.perfil)}</span><input type="text" name="enl_pw_x" placeholder="Palavra-passe" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore style="-webkit-text-security:disc" autofocus>${st.perr?'<em class="perr">Palavra-passe errada</em>':''}<span><button class="btn" type="submit">Entrar</button> <button class="btn ghost" type="button" data-pick="">Cancelar</button></span></form>`};
 const okView=v=>{if(v==='utilizadores')return perf()===PERF['Administrador'];const p=perf();return p.v==='*'||v==='hoje'||p.v.includes(v)};
 const canEdit=()=>perf().edit!==false;
 const obraOk=id=>{const u=me();return !u||!u.obras||!u.obras.length||u.obras.includes(id)};
@@ -985,7 +985,7 @@ function genDemo(T){
 
 /* ---------- eventos ---------- */
 {const _r=render;render=function(){const r=_r.apply(this,arguments);setTimeout(()=>{const i=document.querySelector('.pwf input');if(i)i.focus()},0);return r}}
-document.addEventListener('submit',e=>{const f=e.target.closest&&e.target.closest("[data-pwd]");if(!f)return;e.preventDefault();const id=f.getAttribute("data-pwd"),u=data.utilizadores[id];if(!u)return;const v=f.querySelector('input').value;
+document.addEventListener('submit',e=>{const f=e.target.closest&&e.target.closest("[data-pwd]");if(!f)return;e.preventDefault();const id=f.getAttribute("data-pwd"),u=data.utilizadores[id];if(!u)return;const v=f.querySelector('input').value.trim();
   if(v!==String(u.senha||'123')){st.perr=1;render();return}
   st.pend='';st.perr=0;st.umenu=false;st.user=id;try{localStorage.setItem('enerline_user',id)}catch(x){}const o=rows('obras')[0];if(!data.obras[st.obra]||!obraOk(st.obra))setObra(o?o.id:'');st.view='hoje';render()});
 document.addEventListener('click',async e=>{
