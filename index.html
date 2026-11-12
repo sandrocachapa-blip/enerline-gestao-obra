@@ -566,18 +566,18 @@ function vHoje(){const d=today(),ts=dayTasks(d),ws=rows('trabalhadores').filter(
   const parados=eq.filter(e=>e.estado==='Avariado'||e.estado==='Manutenção');
   const comp=rows('compras').filter(c=>c.estado!=='Recebido'),ent=rows('logistica').filter(l=>l.data===d&&l.estado!=='Entregue');
   const al=[];
-  ts.filter(t=>t.prioridade==='Urgente'&&t.estado!=='Concluída').forEach(t=>al.push([`Tarefa urgente por concluir: ${t.titulo}`,'tarefas','bad','Urgente']));
-  eq.filter(e=>e.estado==='Avariado').forEach(e=>al.push([`${e.nome} está avariado`,'equipamentos','bad','Avariado']));
-  eq.filter(e=>e.proxManut&&e.proxManut<=d&&e.estado!=='Manutenção').forEach(e=>al.push([`${e.nome}: manutenção prevista para ${fdate(e.proxManut)}`,'equipamentos','warn','Manutenção']));
+  ts.filter(t=>t.prioridade==='Urgente'&&t.estado!=='Concluída').forEach(t=>al.push([`Tarefa urgente por concluir: ${t.titulo}`,'tarefas','bad','Urgente','tarefas:'+t.id]));
+  eq.filter(e=>e.estado==='Avariado').forEach(e=>al.push([`${e.nome} está avariado`,'equipamentos','bad','Avariado','equipamentos:'+e.id]));
+  eq.filter(e=>e.proxManut&&e.proxManut<=d&&e.estado!=='Manutenção').forEach(e=>al.push([`${e.nome}: manutenção prevista para ${fdate(e.proxManut)}`,'equipamentos','warn','Manutenção','equipamentos:'+e.id]));
   const sem=ws.filter(w=>!ts.some(t=>(t.responsaveis||[]).includes(w.id)));
   if(ws.length&&sem.length)al.push([`${sem.length} trabalhadores sem tarefa hoje: ${sem.slice(0,4).map(w=>w.nome).join(', ')}${sem.length>4?'…':''}`,'tarefas','warn','Sem tarefa']);
   const lt=dayRows(d).filter(r=>r.atraso).length;if(lt)al.push([`${lt} atrasos na entrada hoje`,'ponto','warn','Atraso']);
-  rows('armazem').filter(m=>m.estado==='Sem stock').forEach(m=>al.push([`Sem stock no armazém: ${m.artigo}`,'armazem','bad','Sem stock']));
-  rows('compras').filter(c=>c.estado==='Pedido').forEach(c=>al.push([`Compra à espera de aprovação: ${c.artigo}`,'compras','warn','Pedido']));
-  rows('documentos').filter(x=>x.validade&&x.validade<d).slice(0,3).forEach(x=>al.push([`Documento expirado: ${x.tipo} (${plain(fld('documentos','trabalhador'),x.trabalhador)||plain(fld('documentos','equipamento'),x.equipamento)||'—'})`,'documentos','bad','Expirado']));
-  Object.values(data.stock).filter(x=>x.obra===st.obra&&+x.qtd<+x.minimo).slice(0,3).forEach(x=>al.push([`Stock abaixo do mínimo: ${x.artigo}`,'stock','warn','Stock']));
-  rows('requisicoes').filter(x=>x.urgencia==='Urgente'&&x.estado==='Pedida').slice(0,3).forEach(x=>al.push([`Requisição urgente: ${x.artigo}`,'requisicoes','warn','Urgente']));
-  rows('hst').filter(x=>x.estado==='Aberto').slice(0,2).forEach(x=>al.push([`HST em aberto: ${x.descricao}`,'hst','warn','Aberto']));
+  rows('armazem').filter(m=>m.estado==='Sem stock').forEach(m=>al.push([`Sem stock no armazém: ${m.artigo}`,'armazem','bad','Sem stock','armazem:'+m.id]));
+  rows('compras').filter(c=>c.estado==='Pedido').forEach(c=>al.push([`Compra à espera de aprovação: ${c.artigo}`,'compras','warn','Pedido','compras:'+c.id]));
+  rows('documentos').filter(x=>x.validade&&x.validade<d).slice(0,3).forEach(x=>al.push([`Documento expirado: ${x.tipo} (${plain(fld('documentos','trabalhador'),x.trabalhador)||plain(fld('documentos','equipamento'),x.equipamento)||'—'})`,'documentos','bad','Expirado','documentos:'+x.id]));
+  Object.values(data.stock).filter(x=>x.obra===st.obra&&+x.qtd<+x.minimo).slice(0,3).forEach(x=>al.push([`Stock abaixo do mínimo: ${x.artigo}`,'stock','warn','Stock','stock:'+x.id]));
+  rows('requisicoes').filter(x=>x.urgencia==='Urgente'&&x.estado==='Pedida').slice(0,3).forEach(x=>al.push([`Requisição urgente: ${x.artigo}`,'requisicoes','warn','Urgente','requisicoes:'+x.id]));
+  rows('hst').filter(x=>x.estado==='Aberto').slice(0,2).forEach(x=>al.push([`HST em aberto: ${x.descricao}`,'hst','warn','Aberto','hst:'+x.id]));
   const tile=(v,n,sub,l)=>`<a class="tile" href="#${v}" data-nav="${v}"><b>${n}${sub?`<i> / ${sub}</i>`:''}</b><span>${l}</span></a>`;
   const obs=rows('obras'),cur=data.obras[st.obra];
   const head=`<div class="vh"><div><h1>Obra hoje</h1><p class="sub">${longDay(d)}</p></div><div class="tools">${db&&obs.some(o=>o.exemplo)?'<button class="btn ghost" data-demoupd="1">Atualizar demonstração</button>':''}<button class="btn ghost" data-new="obras">Nova obra</button>${cur?'<button class="btn" data-new="tarefas">Nova tarefa</button>':''}</div></div>`;
@@ -588,7 +588,7 @@ function vHoje(){const d=today(),ts=dayTasks(d),ws=rows('trabalhadores').filter(
   return head+pick+`<p class="sub">${esc([cur.cliente,cur.inicio?'Início '+fdate(cur.inicio):'',cur.fim?'Fim previsto '+fdate(cur.fim):''].filter(Boolean).join(' · '))} · <a href="#hoje" data-edit="obras:${st.obra}" style="color:var(--brand-ink)">Editar obra</a></p>
   <div class="tiles">${tile('ponto',pres,ws.length,'Presentes')}${tile('tarefas',ts.filter(t=>t.estado==='Concluída').length,ts.length,'Tarefas concluídas')}${tile('equipamentos',parados.length,eq.length,'Meios parados')}${tile('logistica',ent.length,'','Transportes por entregar')}${tile('armazem',rows('armazem').filter(m=>m.estado!=='Entregue').length,'','Pedidos ao armazém')}${tile('compras',comp.length,'','Compras por receber')}</div>
   <div class="cols"><div class="stack"><h2>Tarefas de hoje</h2>${ts.length?ts.map(taskCard).join(''):'<div class="card empty">Ainda não há tarefas distribuídas para hoje.</div>'}</div>
-  <div class="stack"><h2>A precisar de atenção</h2><div class="list">${al.length?al.slice(0,14).map(a=>`<div><span><a href="#${a[1]}" data-nav="${a[1]}" style="color:inherit">${esc(a[0])}</a></span><span class="pill ${a[2]}">${a[3]}</span></div>`).join('')+(al.length>14?`<div><span class="meta">e mais ${al.length-14}</span></div>`:''):'<div class="empty">Nada pendente.</div>'}</div></div></div>`}
+  <div class="stack"><h2>A precisar de atenção</h2><div class="list">${al.length?al.slice(0,14).map(a=>`<div><span><a href="#${a[1]}" ${a[4]&&canEdit()?`data-edit="${a[4]}"`:`data-nav="${a[1]}"`} style="color:inherit">${esc(a[0])}</a></span><span class="pill ${a[2]}">${a[3]}</span></div>`).join('')+(al.length>14?`<div><span class="meta">e mais ${al.length-14}</span></div>`:''):'<div class="empty">Nada pendente.</div>'}</div></div></div>`}
 
 function vPonto(){const c=cfg(),rel=rows('relogios'),o=data.obras[st.obra]||{};
   const seg=`<div class="seg">${[['dia','Dia'],['mes','Mapa mensal']].map(x=>`<button class="${st.pv===x[0]?'on':''}" data-pv="${x[0]}">${x[1]}</button>`).join('')}</div>`;
@@ -1019,7 +1019,7 @@ document.addEventListener('click',async e=>{
   if(g('data-demoupd')){checkDemo(true);return}
   if((v=g('data-chip'))){const i=v.indexOf(':'),c=v.slice(0,i),x=v.slice(i+1);st.fl[c]=x==='*'?'':x;render();return}
   if(g('data-bio')){const fn='SmartPonto-ENERLINE-demo.html',h=await spHtml();if(dl){try{await dl.save({filename:fn,data:h});toast('Ficheiro guardado')}catch(x){if(x&&x.code!=='declined')toast('Não foi possível guardar aqui.')}}else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download=fn;a.click()}return}
-  if((v=g('data-nav'))){e.preventDefault();st.view=v;try{history.replaceState(null,'','#'+v)}catch(x){}render();return}
+  if((v=g('data-nav'))){e.preventDefault();st.view=v;try{history.replaceState(null,'','#'+v)}catch(x){}render();try{window.scrollTo(0,0);const m=document.querySelector('main');if(m)m.scrollTop=0}catch(x){}return}
   if((v=g('data-new'))){openForm(v);return}
   if((v=g('data-res'))){e.preventDefault();if($('#dlg').open)$('#dlg').close();st.res=v;st.view='plano';try{history.replaceState(null,'','#plano')}catch(x){}render();const s=$('#ressel');if(s)s.scrollIntoView({block:'start'});return}
   if((v=g('data-month'))){if(v==='0')st.month=today().slice(0,7);else{const[y,m]=st.month.split('-').map(Number),d=new Date(y,m-1+ +v,1);st.month=d.getFullYear()+'-'+p2(d.getMonth()+1)}render();return}
