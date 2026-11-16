@@ -1151,7 +1151,8 @@ $('#pfile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return
     let added=0;for(const d of ks)added+=await addPunches(d,days[d],f.name);
     st.day=ks[ks.length-1];render();toast(`${added} picagens novas importadas de ${ks.length} dias (${total-added} já existiam).`)};
   r.readAsText(f)});
-boot();
+document.addEventListener('DOMContentLoaded',boot);
 </script>
+<script src="gd.js"></script>
 
 </body></html>

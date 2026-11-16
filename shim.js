@@ -2,14 +2,24 @@
 (function(){
 const KEY='enerline_access_key';
 const getKey=()=>{try{return localStorage.getItem(KEY)||''}catch(e){return ''}};
+/* ---- modo offline: cópia local dos dados e fila de alterações (IndexedDB) ---- */
+const idb=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('enl_off',1);r.onupgradeneeded=()=>{r.result.createObjectStore('snap');r.result.createObjectStore('queue',{autoIncrement:true})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
+  const tx=(st,mode,fn)=>open().then(d=>new Promise((res,rej)=>{const t=d.transaction(st,mode),o=t.objectStore(st);let out;try{out=fn(o)}catch(e){rej(e);return}t.oncomplete=()=>res(out&&'result'in out?out.result:undefined);t.onerror=t.onabort=()=>rej(t.error)})).catch(()=>undefined);
+  return{get:(st,k)=>tx(st,'readonly',o=>o.get(k)),put:(st,v,k)=>tx(st,'readwrite',o=>k===undefined?o.add(v):o.put(v,k)),del:(st,k)=>tx(st,'readwrite',o=>o.delete(k)),
+    all:st=>open().then(d=>new Promise(res=>{const out=[],c=d.transaction(st,'readonly').objectStore(st).openCursor();c.onsuccess=()=>{const x=c.result;if(x){out.push({k:x.key,v:x.value});x.continue()}else res(out)};c.onerror=()=>res(out)})).catch(()=>[])}})();
+let oq=[],offline=false,draining=false;
+const state=()=>{window.enlSync={offline,queued:oq.length};try{window.dispatchEvent(new CustomEvent('enl-sync',{detail:window.enlSync}))}catch(e){}};
+const setOff=v=>{if(offline!==v){offline=v;state()}};
 async function call(body){
-  const r=await fetch('/api/db',{method:'POST',headers:{'content-type':'application/json','x-key':getKey()},body:JSON.stringify(body)});
+  let r;try{r=await fetch('/api/db',{method:'POST',headers:{'content-type':'application/json','x-key':getKey()},body:JSON.stringify(body)})}
+  catch(x){setOff(true);const e=new Error('offline');e.code='offline';throw e}
+  if(r.status!==401&&r.ok)setOff(false);
   if(r.status===401){const e=new Error('unauthorized');e.code='unauthorized';throw e}
   if(!r.ok){const e=new Error('server');e.code='unavailable';throw e}
   return r.json();
 }
 function gate(){return new Promise(resolve=>{
-  const go=async k=>{try{localStorage.setItem(KEY,k)}catch(e){}try{await call({op:'ping'});return true}catch(e){return false}};
+  const go=async k=>{try{localStorage.setItem(KEY,k)}catch(e){}try{await call({op:'ping'});try{localStorage.setItem(KEY+'_ok',k)}catch(e){}return true}catch(e){let ok='';try{ok=localStorage.getItem(KEY+'_ok')||''}catch(x){}return e.code==='offline'&&!!k&&ok===k}};
   go(getKey()).then(good=>{if(good)return resolve();
     const o=document.createElement('div');
     o.style.cssText='position:fixed;inset:0;z-index:99999;background:#1f2a24;display:flex;align-items:center;justify-content:center;font-family:Barlow,system-ui,sans-serif';
@@ -20,9 +30,21 @@ function gate(){return new Promise(resolve=>{
   })})}
 /* escritas em lote */
 let q=[],timer=null,pending=0;const listeners=new Set();
-function flush(){timer=null;const ops=q;q=[];if(!ops.length)return;pending++;
-  const run=async(a)=>{try{await call({op:'batch',ops});}catch(e){if(a<3&&e.code!=='unauthorized'){await new Promise(r=>setTimeout(r,800*(a+1)));return run(a+1)}throw e}};
-  return run(0).then(()=>{pending--;poke()},e=>{pending--;ops.forEach(o=>o._rej&&o._rej(e))}).finally(()=>{ops.forEach(o=>o._res&&o._res())});
+const strip=o=>({t:o.t,col:o.col,id:o.id,data:o.data});
+async function park(ops){for(const o of ops){const k=await idb.put('queue',strip(o));oq.push({k,o:strip(o)})}state()}
+async function drain(){if(draining||!oq.length)return;draining=true;
+  try{while(oq.length){let n=0,sz=0;while(n<oq.length&&n<100){sz+=JSON.stringify(oq[n].o).length;if(n&&sz>3e6)break;n++}
+      const part=oq.slice(0,n);await call({op:'batch',ops:part.map(x=>x.o)});
+      for(const x of part)if(x.k!==undefined)await idb.del('queue',x.k);oq=oq.slice(n);state()}
+    poke()}
+  catch(e){}finally{draining=false}}
+setInterval(()=>{if(oq.length)drain()},8000);window.addEventListener('online',()=>{drain();poke()});
+const boot=idb.all('queue').then(l=>{oq=l.map(x=>({k:x.k,o:x.v}));state();if(oq.length)drain()});
+function flush(){timer=null;const ops=q;q=[];if(!ops.length)return;
+  if(oq.length){return park(ops).then(()=>{ops.forEach(o=>o._res&&o._res());drain()})}
+  pending++;
+  const run=async(a)=>{try{await call({op:'batch',ops:ops.map(strip)});}catch(e){if(a<(e.code==='offline'?1:3)&&e.code!=='unauthorized'){await new Promise(r=>setTimeout(r,800*(a+1)));return run(a+1)}throw e}};
+  return run(0).then(()=>{pending--;poke()},async e=>{pending--;if(e.code==='offline'||e.code==='unavailable'){await park(ops)}else ops.forEach(o=>o._rej&&o._rej(e))}).finally(()=>{ops.forEach(o=>o._res&&o._res())});
 }
 function enqueue(o){return new Promise((res,rej)=>{o._res=res;o._rej=rej;q.push(o);if(q.length>=200){clearTimeout(timer);flush()}else if(!timer)timer=setTimeout(flush,30)})}
 /* o resolve acontece no finally; rejeições chegam via _rej antes */
@@ -35,9 +57,14 @@ Query.prototype.limit=function(n){return new Query(this.col,this.w,n)};
 Query.prototype.get=async function(){const r=await call({op:'query',col:this.col,where:this.w,limit:this.l});return{docs:r.docs.map(mkDoc)}};
 Query.prototype.onSnapshot=function(cb,err){
   let last='',stop=false,busy=false;
+  const ck=this.col+'|'+JSON.stringify(this.w),W=this.w,col=this.col;let first=true;
+  const local=async()=>{const c=await idb.get('snap',ck);const m=new Map((c||[]).map(d=>[d.id,d.data]));
+    oq.forEach(({o})=>{if(o.col!==col)return;if(o.t==='del')m.delete(o.id);else if(W.every(([f,v])=>String((o.data||{})[f]??'')===String(v)))m.set(o.id,o.data)});
+    return{docs:[...m].sort((a,b)=>a[0]<b[0]?-1:1).map(([id,data])=>mkDoc({id,data}))}};
   const tick=async force=>{if(stop||busy||pending>0||q.length)return;busy=true;
-    try{const s=await this.get();const h=JSON.stringify(s.docs.map(d=>[d.id,d.data()]));if(h!==last||force){last=h;cb(s)}}
-    catch(e){if(err&&e.code==='unauthorized')err(e)}finally{busy=false}};
+    try{await boot;if(oq.length){if(first){first=false;cb(await local())}return}
+      const s=await this.get();const raw=s.docs.map(d=>({id:d.id,data:d.data()})),h=JSON.stringify(raw.map(d=>[d.id,d.data]));if(h!==last||force){if(h!==last)idb.put('snap',raw,ck);last=h;first=false;cb(s)}}
+    catch(e){if(err&&e.code==='unauthorized')err(e);else if(first){first=false;try{cb(await local())}catch(x){}}}finally{busy=false}};
   const f=()=>tick(false);listeners.add(f);tick(true);
   const iv=setInterval(()=>{if(!document.hidden)tick(false)},4000);
   const vis=()=>{if(!document.hidden)tick(false)};document.addEventListener('visibilitychange',vis);
@@ -50,5 +77,7 @@ const db={collection:col=>{const base=new Query(col);
     get:async()=>{const r=await call({op:'get',col,id});return{exists:!!r.doc,id,data:()=>r.doc&&r.doc.data}}});
   return base}};
 const dls={save:async({filename,data})=>{const b=data instanceof Blob?data:new Blob([data]);const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}};
+state();
+if('serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 window.claude={use:async n=>{if(n==='db'){await gate();return db}if(n==='downloads')return dls;return null}};
 })();
