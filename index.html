@@ -559,7 +559,7 @@ const DASH={
 
 
 const spHtml=async()=>(await fetch('sp.html')).text();
-function vBio(){return `<div class="vh"><div><h1>Biometria facial e digital</h1><p class="sub">SmartPonto ENERLINE · demonstração com terminais, obras e colaboradores da empresa. Escolha «Registo de ponto», introduza um código (1001 a 1012) e use reconhecimento facial ou impressão digital.</p></div><div class="tools"><button class="btn ghost" data-bio="save">Descarregar SmartPonto (HTML)</button></div></div>
+function vBio(){return `<div class="vh"><div><h1>Biometria facial e digital</h1><p class="sub">SmartPonto ENERLINE · demonstração com terminais, obras e colaboradores da empresa. Escolha «Registo de ponto», introduza um código (1001 a 1012) e use reconhecimento facial ou impressão digital. A fotografia tirada em cada picagem facial vê-se em «Marcações» (botão «Ver marcações e fotos»); fica guardada só neste dispositivo.</p></div><div class="tools"><button class="btn" data-biotab="marcacoes">Ver marcações e fotos</button><button class="btn ghost" data-bio="save">Descarregar SmartPonto (HTML)</button></div></div>
  <iframe id="bio" class="bio" title="SmartPonto ENERLINE" allow="camera; geolocation; fullscreen" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-downloads allow-popups"></iframe>`}
 
 /* ---------- vistas ---------- */
@@ -833,7 +833,7 @@ function render(){GO={};gn=0;
   const nb=st.view==='biometria';
   $('#main').innerHTML=(cur&&cur.exemplo&&!nb?`<div class="banner"><span>Esta obra é de demonstração: trabalhadores, tarefas, picagens e pedidos são simulados.</span><button class="btn" data-danger data-delobra="1">Apagar esta obra</button></div>`:'')+bar+body;
   const vh=$('#main .vh');if(vh&&DASH[st.view]&&cur||(vh&&DASH[st.view]&&GL.includes(st.view)))vh.insertAdjacentHTML('afterend',DASH[st.view]());
-  const bf=$('#bio');if(bf&&!bf.getAttribute('src'))bf.src='sp.html';
+  const bf=$('#bio');if(bf&&!bf.getAttribute('src')){const pm={'Administrador':'admin','Diretor de obra':'admin','RH':'rh'}[(me()||{}).perfil];bf.src='sp.html'+(pm?'?perfil='+pm+(st.bioTab?'&tab='+st.bioTab:''):'');st.bioTab=''}
   if(q&&$('#q')){$('#q').value=q;filter()}
 }
 function filter(){const q=$('#q').value.toLowerCase();document.querySelectorAll('#main tbody tr').forEach(tr=>{tr.hidden=!!q&&!tr.textContent.toLowerCase().includes(q)})}
@@ -1106,6 +1106,7 @@ document.addEventListener('click',async e=>{
   if((v=g('data-abrir'))){st.view='hoje';try{history.replaceState(null,'','#hoje')}catch(x){}setObra(v);return}
   if(g('data-demoupd')){checkDemo(true);return}
   if((v=g('data-chip'))){const i=v.indexOf(':'),c=v.slice(0,i),x=v.slice(i+1);st.fl[c]=x==='*'?'':x;render();return}
+  if((v=g('data-biotab'))){const pm={'Administrador':'admin','Diretor de obra':'admin','RH':'rh'}[(me()||{}).perfil];if(!pm){toast('Só Administrador, Diretor de obra e RH veem as marcações com fotografia.');return}const f=$('#bio');if(f)f.src='sp.html?perfil='+pm+'&tab='+v;return}
   if(g('data-bio')){const fn='SmartPonto-ENERLINE-demo.html',h=await spHtml();if(dl){try{await dl.save({filename:fn,data:h});toast('Ficheiro guardado')}catch(x){if(x&&x.code!=='declined')toast('Não foi possível guardar aqui.')}}else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download=fn;a.click()}return}
   if((v=g('data-go'))){e.preventDefault();const o=GO[v];if(!o)return;st.gf=o.pred?{c:o.view,pred:o.pred,label:o.label}:null;st.view=o.view;if(o.day)st.day=o.day;if(o.pv)st.pv=o.pv;try{history.replaceState(null,'','#'+o.view)}catch(x){}render();try{window.scrollTo(0,0);const m=document.querySelector('main');if(m)m.scrollTop=0}catch(x){}return}
   if(g('data-gfclear')){st.gf=null;render();return}

@@ -1846,7 +1846,10 @@ const UI = (() => {
   }
 
   /* ---------- arranque ---------- */
-  function init() { load(); openTerminal(); permBoot();
+  function init() { load(); let auto = null, atab = ''; try { const q = new URLSearchParams(location.search), r = q.get('perfil'); auto = r && S.users.find(x => x.role === r) || null; atab = q.get('tab') || ''; } catch (e) { console.warn(e); }
+    if (auto) user = auto;
+    if (auto && atab && atab !== 'terminal') go(atab); else openTerminal();
+    permBoot();
     /* demo: sem ligação a servidor */
      window.addEventListener('online', () => syncNow()); window.addEventListener('online', () => { const e = $('#tOnline'); if (e) { e.checked = true; tOnlineChange(); } }); window.addEventListener('offline', () => { const e = $('#tOnline'); if (e) { e.checked = false; tOnlineChange(); } }); }
   document.addEventListener('DOMContentLoaded', init);
