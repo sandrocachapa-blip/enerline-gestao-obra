@@ -103,7 +103,8 @@ async function preview(blob,box){const L=await loadPdf(),pdf=await L.getDocument
 async function openDoc(f,title,sub){show(`<form><h2 style="margin:0">${esc(title)}</h2><p class="meta" style="margin:0">${sub||''}</p><div id="gdv" class="empty">A abrir o documento…</div><div class="actions"><button type="button" class="btn ghost" data-gd="close">Fechar</button></div></form>`,true);
   try{const b=await blobOf(f);if(curUrl)URL.revokeObjectURL(curUrl);curUrl=URL.createObjectURL(b);const v=$('#gdv');if(!v)return;v.className='';
     v.innerHTML=`<div class="gdrow" style="margin-bottom:8px"><a class="btn" href="${curUrl}" target="_blank" rel="noopener">Abrir em ecrã inteiro</a><a class="btn ghost" href="${curUrl}" download="${esc(f.name)}">Descarregar</a><span class="meta">${esc(f.name)} · ${kb(f.size)}</span></div><div class="gdpdf gdpv" id="gdpv"><div class="empty">A preparar a pré-visualização…</div></div>`;
-    const box=$('#gdpv');try{await preview(b,box)}catch(x){if(box&&box.isConnected)box.outerHTML=`<iframe class="gdpdf" title="Documento" src="${curUrl}"></iframe>`}}
+    const box=$('#gdpv');if(/^image\//.test(b.type)){box.innerHTML=`<img alt="Documento" style="max-width:100%;display:block;margin:auto" src="${curUrl}">`;return}
+    try{await preview(b,box)}catch(x){if(box&&box.isConnected)box.outerHTML=`<iframe class="gdpdf" title="Documento" src="${curUrl}"></iframe>`}}
   catch(e){const v=$('#gdv');if(v)v.textContent='Não foi possível abrir: sem internet e este documento ainda não estava guardado neste dispositivo.'}}
 
 /* ---------- vistas ---------- */
@@ -371,5 +372,5 @@ function el_open(id){const b=document.createElement('button');b.setAttribute('da
 {let tries=0;const t=setInterval(()=>{if(!/^#gdobra\//.test(location.hash)||deep()||++tries>60)clearInterval(t)},700)}
 window.addEventListener('hashchange',deep);
 if(typeof db!=='undefined'&&db&&st.obra&&typeof subObra==='function')subObra();
-window.GD={syncFiles,ifcDocs};
+window.GD={syncFiles,ifcDocs,show,hide,F,sel,csv,upload,blobOf,preview,dropFile,fdt,now,kb,openDoc,tile,head};
 })();
