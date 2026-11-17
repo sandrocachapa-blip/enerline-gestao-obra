@@ -37,7 +37,7 @@ VIEWS.forEach(v=>{const c=v[0];if(!DASH[c]&&S[c]&&S[c].fields&&S[c].fields.lengt
 const BASE={};Object.entries(PERF).forEach(([k,p])=>{BASE[k]={d:p.d,v:p.v==='*'?'*':[...p.v],edit:p.edit!==false}});
 const allViews=()=>VIEWS.map(v=>v[0]).filter(v=>v!=='utilizadores'&&v!=='perfis');
 const groups=()=>{const out=[];let g='';VIEWS.forEach(v=>{if(v[2])g=v[2];if(v[0]==='utilizadores'||v[0]==='perfis')return;let o=out.find(x=>x.g===g);if(!o){o={g,vs:[]};out.push(o)}o.vs.push(v)});return out};
-const baseMod=n=>{const b=BASE[n],m={};if(!b)return m;allViews().forEach(v=>{if(b.v==='*'||b.v.includes(v)||v==='hoje')m[v]=b.edit?'w':'r'});return m};
+const baseMod=n=>{const b=BASE[n],m={};if(!b)return m;allViews().forEach(v=>{if(/^adm/.test(v)&&n!=='Administração')return;if(b.v==='*'||b.v.includes(v)||v==='hoje')m[v]=b.edit?'w':'r'});return m};
 const stored=()=>((data.config||{})[KEY]||{}).list||{};
 let applied='';
 function apply(){const L=stored(),sig=JSON.stringify(L)+'|'+VIEWS.length;if(sig===applied)return;applied=sig;
