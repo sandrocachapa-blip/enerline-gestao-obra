@@ -264,7 +264,7 @@ function avV(e){const nm=e.nome||'',key='v'+nm+(e.grupo||'');if(AVC[key])return 
   return AVC[key]=avUri(svg)}
 
 const VIEWS=[['hoje','Hoje','Obra'],['mapa','Localizar obras'],['tarefas','Tarefas diárias'],['plano','Planeamento'],['progresso','Avanço e medições'],
- ['trabalhadores','Trabalhadores','Pessoas'],['ponto','Relógios de ponto'],['biometria','Biometria facial e digital'],['hst','Segurança e HST'],['documentos','Documentos e validades'],['subempreiteiros','Subempreiteiros'],['rh','RH · Primavera'],
+ ['trabalhadores','Trabalhadores','RH'],['ponto','Relógios de ponto'],['biometria','Biometria facial e digital'],['hst','Segurança e HST'],['documentos','Documentos e validades'],['subempreiteiros','Subempreiteiros'],['rh','RH · Primavera'],
  ['equipamentos','Máquinas e viaturas','Meios'],['combustivel','Combustível'],
  ['armazens','Armazéns','Armazém e compras'],['stock','Stock'],['artigos','Artigos (catálogo)'],['transferencias','Transferências'],['armazem','Pedidos ao armazém'],['requisicoes','Requisições'],['compras','Compras'],['fornecedores','Fornecedores'],['logistica','Logística'],
  ['utilizadores','Utilizadores e perfis','Sistema']];
@@ -278,7 +278,7 @@ const PERF={
  'Encarregado':{v:['hoje','mapa','tarefas','plano','progresso','trabalhadores','ponto','biometria','hst','documentos','equipamentos','combustivel','logistica','armazem','requisicoes'],edit:true,d:'Equipas, tarefas, ponto, meios e pedidos da obra.'},
  'Fiel de armazém':{v:['hoje','armazens','artigos','stock','transferencias','armazem','requisicoes','logistica'],edit:true,d:'Armazéns, stock, transferências e pedidos.'},
  'Compras':{v:['hoje','compras','fornecedores','requisicoes','armazens','artigos','stock','subempreiteiros'],edit:true,d:'Compras, fornecedores e requisições.'},
- 'RH':{v:['hoje','trabalhadores','ponto','biometria','documentos','rh','hst'],edit:true,d:'Pessoas, ponto, biometria e RH · Primavera.'},
+ 'RH':{v:['hoje','trabalhadores','ponto','biometria','documentos','rh','hst'],edit:true,d:'Trabalhadores, ponto, biometria e RH · Primavera.'},
  'Técnico HST':{v:['hoje','hst','documentos','trabalhadores','biometria'],edit:true,d:'Segurança, saúde e documentos de validade.'},
  'Consulta (só leitura)':{v:'*',edit:false,d:'Vê tudo, não altera nada.'}};
 const S={
