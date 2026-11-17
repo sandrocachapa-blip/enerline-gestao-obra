@@ -1,6 +1,15 @@
 /* ENERLINE – perfis de acesso configuráveis (sem acesso / leitura / escrita por módulo), resumos compactos e resumo em todos os submenus */
 (function(){
 const ADM='Administrador',KEY='perfis';
+/* ---------- números com ponto nos milhares e vírgula nos decimais, em toda a aplicação ---------- */
+{const o=Number.prototype.toLocaleString;Number.prototype.toLocaleString=function(l,opt){return o.call(this,l==='pt-PT'?'de-DE':l,opt)}}
+const P=v=>{v=String(v==null?'':v).replace(/[^\d.,-]/g,'');if(!v)return NaN;return window.FATLER?window.FATLER.toNum(v):+v.replace(/\./g,'').replace(',','.')};
+const FM=v=>{const n=typeof v==='number'?v:P(v);return isNaN(n)?'':n.toLocaleString('de-DE',{maximumFractionDigits:2})};
+/* campos de valor dos formulários gerais: mostram o número formatado ao sair do campo e voltam a número ao guardar */
+{const o=openForm;openForm=function(c,id,custom){const r=o.apply(this,arguments);try{const s=custom||S[c];(s&&s.fields||[]).filter(f=>f.money&&f.type==='number').forEach(f=>{const e=document.querySelector('#frm #f_'+f.k);if(e){e.dataset.mny='1';if(e.value!==''){e.type='text';e.inputMode='decimal';e.value=FM(e.value)}}})}catch(e){}return r}}
+document.addEventListener('focusin',e=>{const t=e.target;if(t.dataset&&t.dataset.mny&&t.type==='text'){const n=P(t.value);t.type='number';t.value=isNaN(n)?'':n}},true);
+document.addEventListener('focusout',e=>{const t=e.target;if(t.dataset&&t.dataset.mny&&t.type==='number'&&t.value!==''){const v=t.value;t.type='text';t.inputMode='decimal';t.value=FM(v)}},true);
+document.addEventListener('submit',e=>{const fm=e.target;if(!fm||fm.id!=='frm')return;fm.querySelectorAll('input[data-mny]').forEach(t=>{if(t.type==='text'){const n=P(t.value);t.type='number';t.value=isNaN(n)?'':n}})},true);
 /* ---------- resumos mais curtos ---------- */
 const css=document.createElement('style');css.textContent=`
 .dash{margin:0 0 12px;gap:8px}

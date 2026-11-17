@@ -7,8 +7,8 @@ const isAdm=()=>{const u=me();return !u||u.perfil==='Administrador'};
 const C=k=>((data.config||{})[k])||{};
 const key=()=>{try{return localStorage.getItem('enerline_access_key')||''}catch(e){return''}};
 const base=()=>location.origin+location.pathname.replace(/[^/]*$/,'');
-const S_={mail:null,prim:null};
-function probe(){if(S_.busy)return;S_.busy=true;Promise.all([api('/api/mail',{op:'status'}).catch(()=>({})),api('/api/primavera',{op:'status'}).catch(()=>({}))]).then(([m,p])=>{S_.mail=!!m.configured;S_.prim=!!p.configured;S_.done=true;if(st.view==='ligacoes')render()})}
+const S_={mail:null,prim:null,ocr:null};
+function probe(){if(S_.busy)return;S_.busy=true;Promise.all([api('/api/mail',{op:'status'}).catch(()=>({})),api('/api/primavera',{op:'status'}).catch(()=>({})),api('/api/ocr',{op:'status'}).catch(()=>({}))]).then(([m,p,o])=>{S_.mail=!!m.configured;S_.prim=!!p.configured;S_.ocr=!!o.configured;S_.done=true;if(st.view==='ligacoes')render()})}
 const stat=(ok,a,b)=>ok===null?'<span class="meta">a verificar…</span>':pill(ok?a:b);
 TONE.ok.push('Ligado','Ativo');TONE.warn.push('Por configurar','Desligado');
 function vLig(){if(!isAdm())return head('Ligações e cópias de segurança','Só o administrador pode ver e alterar as ligações.','');if(!S_.done)probe();
@@ -29,7 +29,10 @@ function vLig(){if(!isAdm())return head('Ligações e cópias de segurança','S�
     <p class="meta">O administrador Microsoft regista uma aplicação em Entra ID do tipo «Aplicação de página única (SPA)», com o URI de redirecionamento ${code(base())}, e indica aqui os dois identificadores.</p><div class="gdrow"><button class="btn" type="submit">Guardar</button></div></form>`)
   +card('5. Cópias de segurança',dias===null?pill('Por configurar'):pill(dias<=1?'Ativo':'Desligado'),`<p>${bk.at?'Última cópia descarregada: <strong>'+fdt(bk.at)+'</strong> por '+esc(bk.by||'')+(dias>1?' — há '+dias+' dias.':'.'):'Ainda não foi descarregada nenhuma cópia a partir da plataforma.'}</p>
     <p class="meta">A cópia é um ficheiro ZIP com todos os registos (um ficheiro por tabela) e, se quiser, os documentos das faturas e da obra aberta. Guarde-a fora da plataforma.</p>
-    <div class="gdrow"><button class="btn" data-ext="bk">Descarregar cópia de segurança</button><button class="btn ghost" data-ext="bkf">Descarregar com os documentos (PDF)</button></div>`)}
+    <div class="gdrow"><button class="btn" data-ext="bk">Descarregar cópia de segurança</button><button class="btn ghost" data-ext="bkf">Descarregar com os documentos (PDF)</button></div>`)
+  +card('6. Leitura avançada de faturas (IA)',S_.ocr===null?stat(null):pill(S_.ocr&&C('ocr').ia?'Ativo':S_.ocr?'Desligado':'Por configurar'),`<p>A leitura normal é feita no próprio computador: texto do PDF ou reconhecimento de texto (OCR) com tratamento da imagem. Com esta opção ligada, as digitalizações, as fotografias e as faturas manuscritas são também lidas por um serviço de inteligência artificial, que acerta mais nos itens e nos totais.</p>
+    <p class="meta"><strong>Atenção:</strong> com a opção ligada, a imagem da fatura é enviada para um serviço externo (API da Anthropic) para ser lida. Confirme com a ENERLINE se o pode fazer. O serviço é pago pelo uso. Para configurar, defina ${code('ANTHROPIC_API_KEY')} no projeto na Vercel (opcional: ${code('OCR_MODEL')}).</p>
+    <div class="gdrow"><button class="btn${C('ocr').ia?' ghost':''}" data-ext="iaon"${S_.ocr?'':' disabled'}>${C('ocr').ia?'Desligar a leitura por IA':'Ligar a leitura por IA'}</button></div>`)}
 {const o=vGeneric;vGeneric=function(c){return c==='ligacoes'?vLig():o(c)}}
 
 /* ---------- entrada com Microsoft 365 ---------- */
@@ -60,6 +63,7 @@ document.addEventListener('submit',async e=>{const fm=e.target.closest&&e.target
 document.addEventListener('click',async e=>{const el=e.target.closest&&e.target.closest('[data-ext]');if(!el)return;const a=el.getAttribute('data-ext');
   if(a==='ms')return msLogin();if(!isAdm())return;
   if(a==='bk'||a==='bkf')return backup(a==='bkf');
+  if(a==='iaon'){const c=C('ocr');await save('config','ocr',{ia:!c.ia,at:now(),by:(me()||{}).nome||''});return toast(!c.ia?'Leitura por IA ligada.':'Leitura por IA desligada.')}
   if(a==='tmail'){const u=me()||{};try{const j=await api('/api/mail',{to:E.addr(u),subject:'Teste de envio — plataforma ENERLINE',body:'Se recebeu esta mensagem, o envio de emails da plataforma está a funcionar.'});return toast(!j.configured?'O envio ainda não está configurado (falta MAIL_FLOW_URL).':j.ok?'Email de teste enviado para '+E.addr(u)+'.':'O fluxo de envio respondeu com erro.')}catch(x){return toast('Não foi possível contactar o serviço de envio.')}}
   if(a==='tin'){const J=window.jspdf&&window.jspdf.jsPDF;if(!J)return toast('Não foi possível criar o PDF de teste. Recarregue a página com internet.');const p=new J({unit:'mm',format:'a4'}),fo=rows('fornecedores')[0]||{nome:'Fornecedor de teste',nif:'5000000000'};
     p.setFontSize(16);p.text(String(fo.nome),20,26);p.setFontSize(10);p.text('NIF '+(fo.nif||''),20,34);p.setFontSize(18);p.text('FATURA',190,26,{align:'right'});p.setFontSize(12);p.text('FT TESTE/'+Date.now().toString().slice(-5),190,34,{align:'right'});p.setFontSize(10);p.text(['Data: '+fdate(today()),'Vencimento: '+fdate(today())],190,42,{align:'right'});p.text('Total sem IVA 150 000,00',124,138);p.text('IVA 14 % 21 000,00',124,145);p.text('Total 171 000,00 Kz',124,154);
