@@ -372,5 +372,5 @@ function el_open(id){const b=document.createElement('button');b.setAttribute('da
 {let tries=0;const t=setInterval(()=>{if(!/^#gdobra\//.test(location.hash)||deep()||++tries>60)clearInterval(t)},700)}
 window.addEventListener('hashchange',deep);
 if(typeof db!=='undefined'&&db&&st.obra&&typeof subObra==='function')subObra();
-window.GD={syncFiles,ifcDocs,show,hide,F,sel,csv,upload,blobOf,preview,dropFile,fdt,now,kb,openDoc,tile,head};
+window.GD={syncFiles,ifcDocs,show,hide,F,sel,csv,upload,blobOf,preview,dropFile,fdt,now,kb,openDoc,tile,head,loadPdf};
 })();
