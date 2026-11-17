@@ -1,5 +1,5 @@
 /* ENERLINE Gestão de Obra – funcionamento sem internet: guarda a aplicação no dispositivo. */
-const C='enl-shell-v2',SHELL=['./','index.html','shim.js','gd.js','daf.js','sp.html'];
+const C='enl-shell-v3',SHELL=['./','index.html','shim.js','gd.js','daf.js','cmp.js','sp.html'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);
