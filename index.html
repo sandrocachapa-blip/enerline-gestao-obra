@@ -365,10 +365,11 @@ const lost=()=>{$('#sync').textContent='Ligação aos dados perdida. Recarregue 
 const snap=(c,after)=>s=>{const m={};s.docs.forEach(x=>{m[x.id]=JSON.parse(JSON.stringify(x.data()))});data[c]=(typeof demoBusy!=='undefined'&&demoBusy&&demoMap[c])?{...demoMap[c],...m}:m;if(after)after();else render()};
 function subObra(){unsubs.forEach(u=>u());unsubs=[];SC.forEach(c=>{data[c]={};if(st.obra)unsubs.push(db.collection(c).where('obra','==',st.obra).limit(1000).onSnapshot(snap(c),lost))})}
 function setObra(id){st.obra=id||'';st.res='';st.pw='';try{localStorage.setItem('enerline_obra_sel',st.obra)}catch(e){}if(db)subObra();render()}
-async function bulk(jobs,label){let i=0,done=0,err=0;const t=$('#toast');
-  const run=async()=>{while(i<jobs.length){const j=jobs[i++];for(let a=0;;a++){try{await j();break}catch(e){if(a<5&&e&&(e.code==='resource_exhausted'||e.code==='unavailable'))await new Promise(r=>setTimeout(r,1200*(a+1)));else{err++;break}}}
-    done++;if(done%10===0){clearTimeout(toast.t);t.hidden=false;t.textContent=`${label}: ${done} de ${jobs.length}`}}};
-  await Promise.all([1,2,3,4].map(run));toast(err?`${label}: terminou com ${err} falhas.`:`${label}: concluído.`);return err}
+async function bulk(jobs,label){let done=0,err=0;const t=$('#toast'),N=150; /* 150 gravações de cada vez seguem num único pedido */
+  for(let i=0;i<jobs.length;i+=N){const part=jobs.slice(i,i+N);let rs=await Promise.allSettled(part.map(j=>j())),bad=part.filter((_,k)=>rs[k].status==='rejected');
+    for(let a=0;bad.length&&a<3;a++){await new Promise(r=>setTimeout(r,1500*(a+1)));rs=await Promise.allSettled(bad.map(j=>j()));bad=bad.filter((_,k)=>rs[k].status==='rejected')}
+    err+=bad.length;done+=part.length;clearTimeout(toast.t);t.hidden=false;t.textContent=`${label}: ${Math.min(done,jobs.length)} de ${jobs.length}`}
+  toast(err?`${label}: terminou com ${err} falhas.`:`${label}: concluído.`);return err}
 let demoBusy=false,demoMap={};
 const DAYC=['tarefas','logistica','armazem','ponto','combustivel','transferencias','requisicoes','hst','progresso','compras','rh','documentos'];
 async function checkDemo(force){if(!db||demoBusy||!rows('obras').some(o=>o.exemplo))return;const c=data.config.demo,td=today();
