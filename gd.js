@@ -11,7 +11,7 @@ const MAXMB=20,CH=600000;
 
 /* ---------- registo na aplicação ---------- */
 GDC.forEach(c=>{if(!SC.includes(c))SC.push(c);if(!COLS.includes(c))COLS.push(c);data[c]=data[c]||{};S[c]={title:c,cols:[],fields:[],sort:()=>0}});
-VIEWS.splice(VIEWS.findIndex(v=>v[0]==='utilizadores'),0,['gdmdl','Lista de documentos (MDL)','Documentação'],['gdobra','Biblioteca Obra'],['gdtrans','Transmittals'],['gdmatriz','Frentes e distribuição'],['gdretorno','Retorno de obra']);
+VIEWS.splice(VIEWS.findIndex(v=>v[0]==='utilizadores'),0,['gdmdl','Lista de documentos (MDL)','Doc. Obra'],['gdobra','Biblioteca Obra'],['gdtrans','Transmittals'],['gdmatriz','Frentes e distribuição'],['gdretorno','Retorno de obra']);
 {const G=['gdmdl','gdobra','gdtrans','gdmatriz','gdretorno'],np={};
  Object.entries(PERF).forEach(([k,v])=>{if(k==='Consulta (só leitura)'){np['Gestão documental']={v:['hoje',...G],edit:true,d:'Lista de documentos, revisões, transmittals e publicação para obra.'};np['Frente de obra']={v:['hoje','gdobra','gdretorno'],edit:true,d:'Lê os documentos em vigor da sua frente e envia dúvidas, red-lines e fotografias.'}}np[k]=v});
  Object.keys(PERF).forEach(k=>delete PERF[k]);Object.assign(PERF,np);
