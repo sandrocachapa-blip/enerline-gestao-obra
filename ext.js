@@ -1,0 +1,73 @@
+/* ENERLINE – Ligações: receção e envio de email, PRIMAVERA, contas Microsoft 365 e cópias de segurança */
+(function(){
+const G=window.GD,E=window.ENL;if(!G||!E)return;
+const{show,hide,F,head,tile,fdt,now}=G,api=E.api;
+VIEWS.push(['ligacoes','Ligações e cópias de segurança']);
+const isAdm=()=>{const u=me();return !u||u.perfil==='Administrador'};
+const C=k=>((data.config||{})[k])||{};
+const key=()=>{try{return localStorage.getItem('enerline_access_key')||''}catch(e){return''}};
+const base=()=>location.origin+location.pathname.replace(/[^/]*$/,'');
+const S_={mail:null,prim:null};
+function probe(){if(S_.busy)return;S_.busy=true;Promise.all([api('/api/mail',{op:'status'}).catch(()=>({})),api('/api/primavera',{op:'status'}).catch(()=>({}))]).then(([m,p])=>{S_.mail=!!m.configured;S_.prim=!!p.configured;S_.done=true;if(st.view==='ligacoes')render()})}
+const stat=(ok,a,b)=>ok===null?'<span class="meta">a verificar…</span>':pill(ok?a:b);
+TONE.ok.push('Ligado','Ativo');TONE.warn.push('Por configurar','Desligado');
+function vLig(){if(!isAdm())return head('Ligações e cópias de segurança','Só o administrador pode ver e alterar as ligações.','');if(!S_.done)probe();
+  const m=C('m365'),bk=C('backup'),card=(t,st_,body)=>`<div class="card" style="margin-bottom:16px"><div class="gdrow" style="justify-content:space-between"><h2 style="margin:0">${t}</h2>${st_}</div>${body}</div>`,code=t=>`<code style="background:var(--bg,#eee);padding:2px 6px;border-radius:4px;overflow-wrap:anywhere">${esc(t)}</code>`;
+  const dias=bk.at?Math.floor((Date.now()-new Date(bk.at))/864e5):null;
+  return head('Ligações e cópias de segurança','Estado de cada ligação a sistemas externos e o que falta para a ativar.','')
+  +card('1. Receção de faturas por email',pill('Ativo'),`<p>Cada email reencaminhado para o endereço abaixo cria uma fatura «Recebida» por cada anexo PDF ou imagem. A leitura dos dados (incluindo OCR de digitalizações) é feita quando a contabilidade abre a fatura.</p>
+    <p class="meta">No Microsoft 365, crie no Power Automate um fluxo «Quando chega um novo email» sobre a caixa de faturas, com a ação «HTTP» (POST):</p>
+    <p>Endereço: ${code(base()+'api/inbound')}<br>Cabeçalhos: ${code('x-key: (a chave de acesso da plataforma)')} e ${code('content-type: application/json')}<br>Corpo: ${code('{"from":"…","subject":"…","attachments":[{"name":"…","contentType":"…","contentBase64":"…"}]}')}</p>
+    <p class="meta">Limite: cerca de 3 MB de anexos por email.</p><div class="gdrow"><button class="btn ghost" data-ext="tin">Testar: simular a chegada de um email</button></div>`)
+  +card('2. Envio de emails de aviso',stat(S_.mail,'Ligado','Por configurar'),`<p>${S_.mail?'Os avisos internos (validador, armazém, contabilidade) são enviados de verdade. Os emails para fornecedores esperam confirmação no ecrã «Emails».':'Enquanto não estiver ligado, os emails são apenas simulados e ficam no ecrã «Emails».'}</p>
+    <p class="meta">Para ligar: crie um fluxo «Quando é recebido um pedido HTTP» → «Enviar um email (V2)» com os campos ${code('to')}, ${code('subject')} e ${code('body')}, e guarde o endereço do fluxo na variável ${code('MAIL_FLOW_URL')} do projeto na Vercel.</p><div class="gdrow"><button class="btn ghost" data-ext="tmail">Enviar email de teste para mim</button></div>`)
+  +card('3. PRIMAVERA',stat(S_.prim,'Ligado','Por configurar'),`<p>Leitura de fornecedores e artigos diretamente do PRIMAVERA (Web API da versão 10). Nesta fase a ligação é só de leitura: a plataforma não cria documentos no PRIMAVERA.</p>
+    <p class="meta">Para ligar, defina na Vercel: ${code('PRIMAVERA_URL')} (ex.: https://servidor:2018/WebApi), ${code('PRIMAVERA_USER')}, ${code('PRIMAVERA_PASSWORD')} e ${code('PRIMAVERA_COMPANY')}. O servidor tem de estar acessível a partir da internet.</p>
+    <div class="gdrow"><button class="btn ghost" data-ext="ptest"${S_.prim?'':' disabled'}>Testar ligação</button><button class="btn ghost" data-ext="pforn"${S_.prim?'':' disabled'}>Sincronizar fornecedores</button><button class="btn ghost" data-ext="part"${S_.prim?'':' disabled'}>Sincronizar artigos</button></div>`)
+  +card('4. Entrada com contas Microsoft 365',pill(m.client&&m.tenant?'Ativo':'Por configurar'),`<p>Com isto ligado, o ecrã de entrada mostra «Entrar com a conta Microsoft». A pessoa entra com a conta da empresa e a plataforma reconhece-a pelo email da ficha de utilizador.</p>
+    <form data-extf="m365"><div class="fields">${F('ID do diretório (tenant)',`<input name="tenant" value="${esc(m.tenant||'')}" placeholder="00000000-0000-0000-0000-000000000000">`)}${F('ID da aplicação (cliente)',`<input name="client" value="${esc(m.client||'')}" placeholder="00000000-0000-0000-0000-000000000000">`)}</div>
+    <p class="meta">O administrador Microsoft regista uma aplicação em Entra ID do tipo «Aplicação de página única (SPA)», com o URI de redirecionamento ${code(base())}, e indica aqui os dois identificadores.</p><div class="gdrow"><button class="btn" type="submit">Guardar</button></div></form>`)
+  +card('5. Cópias de segurança',dias===null?pill('Por configurar'):pill(dias<=1?'Ativo':'Desligado'),`<p>${bk.at?'Última cópia descarregada: <strong>'+fdt(bk.at)+'</strong> por '+esc(bk.by||'')+(dias>1?' — há '+dias+' dias.':'.'):'Ainda não foi descarregada nenhuma cópia a partir da plataforma.'}</p>
+    <p class="meta">A cópia é um ficheiro ZIP com todos os registos (um ficheiro por tabela) e, se quiser, os documentos das faturas e da obra aberta. Guarde-a fora da plataforma.</p>
+    <div class="gdrow"><button class="btn" data-ext="bk">Descarregar cópia de segurança</button><button class="btn ghost" data-ext="bkf">Descarregar com os documentos (PDF)</button></div>`)}
+{const o=vGeneric;vGeneric=function(c){return c==='ligacoes'?vLig():o(c)}}
+
+/* ---------- entrada com Microsoft 365 ---------- */
+let msal=null;const loadMsal=()=>msal||(msal=new Promise((res,rej)=>{const s=document.createElement('script');s.src='vendor/msal-browser.min.js';s.onload=()=>res(window.msal);s.onerror=rej;document.head.appendChild(s)}).catch(e=>{msal=null;throw e}));
+async function msLogin(){const m=C('m365');if(!m.client||!m.tenant)return;try{const L=await loadMsal(),app=new L.PublicClientApplication({auth:{clientId:m.client,authority:'https://login.microsoftonline.com/'+m.tenant,redirectUri:base()},cache:{cacheLocation:'sessionStorage'}});
+    if(app.initialize)await app.initialize();const r=await app.loginPopup({scopes:['User.Read'],prompt:'select_account'}),mail=String((r.account&&r.account.username)||'').toLowerCase();
+    const u=Object.entries(data.utilizadores).find(([,x])=>x.estado!=='Inativo'&&String(x.email||'').toLowerCase()===mail);
+    if(!u)return toast('A conta '+mail+' não corresponde a nenhum utilizador ativo. Peça ao administrador para pôr este email na sua ficha.');
+    st.pend='';st.perr=0;st.umenu=false;st.user=u[0];try{localStorage.setItem('enerline_user',u[0])}catch(x){}const o=rows('obras')[0];if(!data.obras[st.obra]||!obraOk(st.obra))setObra(o?o.id:'');st.view='hoje';render()}
+  catch(e){console.warn(e);toast('Não foi possível entrar com a conta Microsoft.')}}
+{const o=render;render=function(){const r=o.apply(this,arguments);try{const m=C('m365');if(!st.user&&m.client&&m.tenant){const l=document.querySelector('#main .ulist');if(l&&!document.querySelector('#msbtn'))l.insertAdjacentHTML('beforebegin','<p><button class="btn" id="msbtn" data-ext="ms">Entrar com a conta Microsoft 365</button></p>')}}catch(e){}return r}}
+
+/* ---------- cópia de segurança ---------- */
+async function backup(withFiles){if(!window.JSZip)return toast('Não foi possível preparar a cópia. Recarregue a página com internet.');const z=new JSZip(),t=$('#toast'),say=m=>{t.textContent=m;t.hidden=false},man={criada:now(),por:(me()||{}).nome||'',tabelas:{},falhas:[]};
+  const cols=[...new Set(['obras','config','rubricas',...COLS])],obras=Object.keys(data.obras);let i=0;
+  for(const c of cols){say('A preparar a cópia de segurança… '+(++i)+' de '+cols.length);let docs=[];
+    try{if(SC.includes(c)){for(const ob of obras){const s=await db.collection(c).where('obra','==',ob).limit(5000).get();s.docs.forEach(d=>docs.push({id:d.id,data:d.data()}))}}else{const s=await db.collection(c).limit(5000).get();s.docs.forEach(d=>docs.push({id:d.id,data:d.data()}))}
+      z.file('dados/'+c+'.json',JSON.stringify(docs));man.tabelas[c]=docs.length}catch(e){man.falhas.push(c)}}
+  if(withFiles){const fs=[];Object.values(data.dafaturas||{}).forEach(f=>{if(f.file)fs.push(['faturas/'+(f.num||f.file.id),f.file]);(f.anexos||[]).forEach((a,k)=>fs.push(['faturas/'+(f.num||'')+' anexo '+(k+1),a.file]))});Object.values(data.gdocs||{}).forEach(d=>{if(d.file)fs.push(['documentos/'+d.codigo+' rev '+d.rev,d.file])});
+    let n=0;for(const[nome,f]of fs){say('A juntar os documentos… '+(++n)+' de '+fs.length);try{z.file('ficheiros/'+nome.split('/').map((x,i)=>i?x.replace(/[\\/:*?"<>|]+/g,'-'):x).join('/').replace(/^(\w+)\/(.*)$/,(m,d,r)=>d+'/'+r.replace(/\//g,'-'))+(String(f.name).match(/\.[a-z0-9]+$/i)||['.pdf'])[0],await G.blobOf(f))}catch(e){man.falhas.push(f.name)}}man.ficheiros=fs.length}
+  z.file('LEIA-ME.txt','Cópia de segurança da plataforma ENERLINE Gestão de Obra\r\nCriada em '+man.criada+' por '+man.por+'\r\n\r\nA pasta «dados» tem um ficheiro JSON por tabela. Guarde este ZIP num local seguro, fora da plataforma.\r\n'+(man.falhas.length?'\r\nATENÇÃO: não foi possível incluir: '+man.falhas.join(', ')+'\r\n':''));z.file('manifesto.json',JSON.stringify(man,null,1));
+  const b=await z.generateAsync({type:'blob',compression:'DEFLATE'}),nome='ENERLINE-copia-de-seguranca-'+today()+'.zip';if(typeof dl!=='undefined'&&dl)await dl.save({filename:nome,data:b}).catch(()=>{});else{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nome;a.click()}
+  await save('config','backup',{at:now(),by:(me()||{}).nome||''});toast(man.falhas.length?'Cópia criada, mas com falhas em: '+man.falhas.slice(0,4).join(', ')+'. Veja o LEIA-ME dentro do ZIP.':'Cópia de segurança descarregada ('+Object.values(man.tabelas).reduce((a,b)=>a+b,0)+' registos).')}
+
+document.addEventListener('submit',async e=>{const fm=e.target.closest&&e.target.closest('form[data-extf]');if(!fm)return;e.preventDefault();if(!isAdm())return;
+  const t=fm.elements.tenant.value.trim(),c=fm.elements.client.value.trim(),re=/^[0-9a-f-]{20,40}$/i;if((t||c)&&!(re.test(t)&&re.test(c)))return toast('Os dois identificadores têm o formato 00000000-0000-0000-0000-000000000000.');
+  await save('config','m365',{tenant:t,client:c});toast(t?'Entrada com Microsoft 365 ativada.':'Entrada com Microsoft 365 desligada.')});
+document.addEventListener('click',async e=>{const el=e.target.closest&&e.target.closest('[data-ext]');if(!el)return;const a=el.getAttribute('data-ext');
+  if(a==='ms')return msLogin();if(!isAdm())return;
+  if(a==='bk'||a==='bkf')return backup(a==='bkf');
+  if(a==='tmail'){const u=me()||{};try{const j=await api('/api/mail',{to:E.addr(u),subject:'Teste de envio — plataforma ENERLINE',body:'Se recebeu esta mensagem, o envio de emails da plataforma está a funcionar.'});return toast(!j.configured?'O envio ainda não está configurado (falta MAIL_FLOW_URL).':j.ok?'Email de teste enviado para '+E.addr(u)+'.':'O fluxo de envio respondeu com erro.')}catch(x){return toast('Não foi possível contactar o serviço de envio.')}}
+  if(a==='tin'){const J=window.jspdf&&window.jspdf.jsPDF;if(!J)return toast('Não foi possível criar o PDF de teste. Recarregue a página com internet.');const p=new J({unit:'mm',format:'a4'}),fo=rows('fornecedores')[0]||{nome:'Fornecedor de teste',nif:'5000000000'};
+    p.setFontSize(16);p.text(String(fo.nome),20,26);p.setFontSize(10);p.text('NIF '+(fo.nif||''),20,34);p.setFontSize(18);p.text('FATURA',190,26,{align:'right'});p.setFontSize(12);p.text('FT TESTE/'+Date.now().toString().slice(-5),190,34,{align:'right'});p.setFontSize(10);p.text(['Data: '+fdate(today()),'Vencimento: '+fdate(today())],190,42,{align:'right'});p.text('Total sem IVA 150 000,00',124,138);p.text('IVA 14 % 21 000,00',124,145);p.text('Total 171 000,00 Kz',124,154);
+    const b64=p.output('datauristring').split(',')[1];try{const j=await api('/api/inbound',{from:'teste@enerline.ao',subject:'Teste de receção por email',attachments:[{name:'fatura-teste.pdf',contentType:'application/pdf',contentBase64:b64}]});return toast(j.ok&&j.created?'Receção a funcionar: foi criada uma fatura «Recebida» em Faturas de fornecedores.':'A receção respondeu com erro: '+(j.error||'sem anexos'))}catch(x){return toast('Não foi possível contactar o serviço de receção.')}}
+  if(a==='ptest'){try{const j=await api('/api/primavera',{op:'test'});return toast(j.ok?'Ligação ao PRIMAVERA a funcionar.':'O PRIMAVERA recusou a ligação'+(j.status?' (HTTP '+j.status+')':'')+'. '+(j.msg||''))}catch(x){return toast('Não foi possível contactar o PRIMAVERA.')}}
+  if(a==='pforn'||a==='part'){el.disabled=true;try{const j=await api('/api/primavera',{op:a==='pforn'?'fornecedores':'artigos'});if(!j.ok)return toast('O PRIMAVERA respondeu com erro. '+(j.msg||''));let nv=0,up=0;
+      if(a==='pforn'){const by=new Map(Object.entries(data.fornecedores).map(([id,f])=>[String(f.codPrim||'').toLowerCase(),id])),byN=new Map(Object.entries(data.fornecedores).map(([id,f])=>[String(f.nif||''),id]));j.rows.forEach((r,i)=>{const id=by.get(r.codigo.toLowerCase())||(r.nif&&byN.get(r.nif)),old=id?data.fornecedores[id]:{estado:'Ativo'};save('fornecedores',id||'fp'+uid()+i,{...old,nome:r.nome,codPrim:r.codigo,nif:r.nif||old.nif||'',email:old.email||r.email||'',local:old.local||r.local||'',telefone:old.telefone||r.telefone||''});id?up++:nv++})}
+      else{const by=new Map(Object.entries(data.artigos).map(([id,x])=>[String(x.codigo||'').toLowerCase(),id]));j.rows.forEach((r,i)=>{const id=by.get(r.codigo.toLowerCase()),old=id?data.artigos[id]:{};save('artigos',id||'ap'+uid()+i,{...old,codigo:r.codigo,nome:r.nome,unidade:r.unidade||old.unidade||'',familia:r.familia||old.familia||'',subfamilia:r.subfamilia||old.subfamilia||'',tipoArtigo:r.tipoArtigo||old.tipoArtigo||'',categoria:old.categoria||r.familia||''});id?up++:nv++})}
+      return toast((a==='pforn'?'Fornecedores':'Artigos')+' sincronizados: '+nv+' novos, '+up+' atualizados.')}catch(x){return toast('Não foi possível contactar o PRIMAVERA.')}finally{el.disabled=false}}
+});
+})();

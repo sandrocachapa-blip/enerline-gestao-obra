@@ -5,10 +5,10 @@ const G=window.GD;if(!G)return;
 const{show,hide,F,sel,csv,fdt,now,tile,head}=G;
 ['orcamento'].forEach(c=>{if(!SC.includes(c))SC.push(c);if(!COLS.includes(c))COLS.push(c);data[c]=data[c]||{};S[c]={title:c,cols:[],fields:[],sort:()=>0}});
 ['emails'].forEach(c=>{if(!GL.includes(c))GL.push(c);if(!COLS.includes(c))COLS.push(c);data[c]=data[c]||{};S[c]={title:c,cols:[],fields:[],sort:()=>0}});
-{const i=VIEWS.findIndex(v=>v[0]==='utilizadores');VIEWS.splice(i,0,['orcexec','Execução orçamental'],['emails','Emails (simulação)']);
+{const i=VIEWS.findIndex(v=>v[0]==='utilizadores');VIEWS.splice(i,0,['orcexec','Execução orçamental'],['emails','Emails']);
  Object.entries(PERF).forEach(([k,v])=>{if(!Array.isArray(v.v))return;if(['DAF','Compras'].includes(k))v.v.push('orcexec');if(!v.v.includes('emails'))v.v.push('emails');if(k==='DAF'&&!v.v.includes('requisicoes'))v.v.push('requisicoes')})}
 {const v=VIEWS.find(v=>v[0]==='compras');if(v)v[1]='Pedidos de compra e notas de encomenda'}
-TONE.ok.push('Fornecida','Completa');TONE.warn.push('Parcial','Em consulta');
+TONE.ok.push('Fornecida','Completa','Enviado');TONE.warn.push('Parcial','Em consulta','Por enviar','Simulado');TONE.bad.push('Falhou');
 const css=document.createElement('style');css.textContent=`
 .cmpl{width:100%;border-collapse:collapse}.cmpl th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:4px 6px;color:var(--muted,#667)}.cmpl td{padding:4px 6px;border-top:1px solid var(--line);vertical-align:middle}
 .cmpl input{width:100%;min-width:0}.cmpl td.q{width:110px}.cmpl td.p{width:150px}.cmpl td.x{width:44px}.cmpl .num{text-align:right;white-space:nowrap}
@@ -36,7 +36,17 @@ function takeStock(nome,q){const k=String(nome||'').trim().toLowerCase(),isOb=a=
 /* emails simulados: ficam registados, não são enviados */
 const addr=u=>u.email||String(u.nome||'').toLowerCase().replace(/[^a-z]+/g,'.')+'@enerline.ao';
 const byPerf=(...ps)=>rows('utilizadores').filter(u=>ps.includes(u.perfil)&&u.estado!=='Inativo').map(addr);
-function mail(para,assunto,corpo,ref){const to=[...new Set([].concat(para).filter(Boolean))];if(!to.length)return;save('emails','m'+uid(),{para:to.join('; '),assunto,corpo,ref:ref||'',de:uname(),at:now(),obra:st.obra||''})}
+/* emails: sem serviço de envio ficam só registados (simulação); com MAIL_FLOW_URL os avisos internos saem de verdade.
+   Emails para fora da empresa (fornecedores) nunca saem sozinhos: ficam «Por enviar» até alguém carregar em «Enviar agora». */
+let mailOn=null;const key_=()=>{try{return localStorage.getItem('enerline_access_key')||''}catch(e){return''}};
+const api=(path,body)=>fetch(path,{method:'POST',headers:{'content-type':'application/json','x-key':key_()},body:JSON.stringify(body)}).then(r=>r.json());
+const mailCfg=()=>mailOn!==null?Promise.resolve(mailOn):api('/api/mail',{op:'status'}).then(j=>(mailOn=!!j.configured),()=>(mailOn=false));
+const interno=a=>rows('utilizadores').some(u=>addr(u).toLowerCase()===String(a).trim().toLowerCase())&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(a).trim());
+async function sendMail(id){const m=data.emails[id];if(!m)return false;let est='Falhou';try{const j=await api('/api/mail',{to:m.para,subject:m.assunto,body:m.corpo});est=!j.configured?'Simulado':j.ok?'Enviado':'Falhou'}catch(e){}
+  save('emails',id,{...data.emails[id],estado:est,enviadoEm:est==='Enviado'?now():''});return est==='Enviado'}
+function mail(para,assunto,corpo,ref){const to=[...new Set([].concat(para).filter(Boolean))];if(!to.length)return;const id='m'+uid(),todosInt=to.every(interno);
+  save('emails',id,{para:to.join('; '),assunto,corpo,ref:ref||'',de:uname(),at:now(),obra:st.obra||'',estado:'Simulado',externo:!todosInt});
+  mailCfg().then(on=>{if(!on)return;if(todosInt)sendMail(id);else save('emails',id,{...data.emails[id],estado:'Por enviar'})})}
 /* ficheiro Excel (.xlsx) com uma folha por tipo de documento, para importar no PRIMAVERA */
 async function xlsx(nome,sheets){sheets=sheets.filter(s=>s.rows.length);if(!sheets.length){toast('Não há documentos para exportar.');return false}
   if(!window.JSZip){sheets.forEach(s=>csv(nome.replace(/\.xlsx$/,'')+'-'+s.name+'.csv',s.head,s.rows));return true}
@@ -59,7 +69,7 @@ function shNE(cs){const m=artMap(),o=obraC();return{name:'NotasEncomenda',head:[
 function shGE(){const m=artMap(),o=obraC();return{name:'GuiasEntrada',head:['TipoDoc','NumDoc','Data','Entidade','Nome','NotaEncomenda','Armazem','Obra','NomeObra',...AH,'Quantidade','Unidade','PrecoUnitario','TotalLinha','Fatura'],rows:Object.values(data.dafaturas||{}).filter(f=>f.obra===st.obra&&f.guia&&f.guia.numero).flatMap(f=>{const fo=data.fornecedores[f.fornecedor]||{};return(f.guia.linhas||[]).map(l=>['VGR',f.guia.numero,fdate(f.guia.data),fo.codPrim||'',fo.nome||f.fornNome||'',f.guia.ne||'',(data.armazens[f.guia.armazem]||{}).nome||'',...o,...AC(l,m),+l.qtd||0,l.un||'',+l.preco||0,Math.round((+l.qtd||0)*(+l.preco||0)*100)/100,f.num])})}}
 async function expDocs(col,sheetFn,nome,filtro){const all=rows(col).filter(filtro||(()=>true)),pend=all.filter(r=>!r.expPrim),l=pend.length?pend:all;if(!(await xlsx(nome+'-'+cod()+'-'+today()+'.xlsx',[sheetFn(l)])))return;
   const at=now();l.forEach(r=>{const{id,...d}=r;save(col,id,{...d,expPrim:at})});toast(l.length+' documento(s) exportado(s) para o PRIMAVERA'+(pend.length?'.':' (já tinham sido todos exportados; foram exportados de novo).'))}
-window.ENL={mail,byPerf,addr,lines,artOf,artMap,sumL,kzf,xlsx};
+window.ENL={mail,byPerf,addr,lines,artOf,artMap,sumL,kzf,xlsx,api,mailCfg};
 
 /* ---------- editor de linhas (só artigos do catálogo PRIMAVERA) ---------- */
 const optTxt=a=>(a.codigo?a.codigo+' · ':'')+a.nome;
@@ -136,10 +146,10 @@ function vOrc(){orcDemo();const acc=exec(),ks=Object.keys(acc).sort(),tot=ks.red
   <p class="help">A classe de obra vem da ficha de cada artigo (campo «Classe de obra»). «Encomendado» soma as notas de encomenda; «Recebido» as guias de entrada; «Faturado» as faturas já registadas. ${pode?'Escreva o orçamento de cada classe diretamente na tabela.':''}</p>`}
 
 /* ---------- emails (simulação) ---------- */
-function vMail(){const ms=Object.entries(data.emails||{}).map(([id,m])=>({...m,id})).sort((a,b)=>(b.at||'').localeCompare(a.at||'')),meu=addr(me()||{}),f=st.mailf||'',l=f==='meus'?ms.filter(m=>(m.para||'').includes(meu)):ms;
-  return head('Emails (simulação)','Mensagens que a plataforma enviaria em cada passo do circuito. Nesta fase são apenas simuladas: ficam aqui registadas e não saem para ninguém.',`<input type="search" id="q" placeholder="Procurar" aria-label="Procurar"><select id="mailf" aria-label="Filtro"><option value="">Todos</option><option value="meus"${f==='meus'?' selected':''}>Dirigidos a mim</option></select>`)
-  +`<div class="tiles">${tile(ms.length,'Emails simulados')}${tile(ms.filter(m=>(m.at||'').slice(0,10)===today()).length,'Hoje')}${tile(ms.filter(m=>(m.para||'').includes(meu)).length,'Dirigidos a mim')}</div>
-  <div class="tablewrap">${l.length?`<table><thead><tr><th>Quando</th><th>Para</th><th>Assunto e mensagem</th><th>Gerado por</th></tr></thead><tbody>${l.slice(0,300).map(m=>`<tr><td style="white-space:nowrap">${fdt(m.at)}</td><td>${esc(m.para)}</td><td><strong>${esc(m.assunto)}</strong><div class="mailb">${esc(m.corpo)}</div></td><td>${esc(m.de||'')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Ainda não foi simulado nenhum email. Aparecem aqui quando alguém cria uma requisição, emite uma nota de encomenda, regista ou valida uma fatura, etc.</div>'}</div>`}
+function vMail(){mailCfg().then(on=>{if(vMail.on!==on){vMail.on=on;if(st.view==='emails')render()}});const on=!!vMail.on,ms=Object.entries(data.emails||{}).map(([id,m])=>({...m,id})).sort((a,b)=>(b.at||'').localeCompare(a.at||'')),meu=addr(me()||{}),f=st.mailf||'',l=f==='meus'?ms.filter(m=>(m.para||'').includes(meu)):f==='env'?ms.filter(m=>m.estado==='Por enviar'):ms;
+  return head('Emails',on?'O envio está ligado: os avisos internos saem automaticamente. Os emails para fornecedores ficam «Por enviar» até alguém os confirmar aqui.':'Modo de simulação: as mensagens ficam aqui registadas e não saem para ninguém. Para envio real é preciso ligar o serviço de correio (ver «Ligações»).',`<input type="search" id="q" placeholder="Procurar" aria-label="Procurar"><select id="mailf" aria-label="Filtro"><option value="">Todos</option><option value="meus"${f==='meus'?' selected':''}>Dirigidos a mim</option><option value="env"${f==='env'?' selected':''}>Por enviar</option></select>`)
+  +`<div class="tiles">${tile(ms.length,'Mensagens')}${tile(ms.filter(m=>m.estado==='Enviado').length,'Enviadas de verdade','ok')}${tile(ms.filter(m=>m.estado==='Por enviar').length,'Por enviar (fornecedores)',ms.some(m=>m.estado==='Por enviar')?'warn':'')}${tile(ms.filter(m=>(m.para||'').includes(meu)).length,'Dirigidas a mim')}</div>
+  <div class="tablewrap">${l.length?`<table><thead><tr><th>Quando</th><th>Para</th><th>Assunto e mensagem</th><th>Gerado por</th><th>Estado</th></tr></thead><tbody>${l.slice(0,300).map(m=>`<tr><td style="white-space:nowrap">${fdt(m.at)}</td><td>${esc(m.para)}</td><td><strong>${esc(m.assunto)}</strong><div class="mailb">${esc(m.corpo)}</div></td><td>${esc(m.de||'')}</td><td>${pill(m.estado||'Simulado')}${m.estado==='Por enviar'&&canEdit()?`<br><button class="btn ghost" data-cmp="sendmail:${m.id}" style="margin-top:6px">Enviar agora</button>`:''}${m.enviadoEm?`<br><span class="meta">${fdt(m.enviadoEm)}</span>`:''}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Ainda não há mensagens. Aparecem aqui quando alguém cria uma requisição, emite uma nota de encomenda, regista ou valida uma fatura, etc.</div>'}</div>`}
 
 const VW={requisicoes:vReq,compras:vComp,orcexec:vOrc,emails:vMail};
 {const o=vGeneric;vGeneric=function(c){if(VW[c])return VW[c]();const h=o(c);return c==='artigos'&&canEdit()?h.replace('<div class="tools">','<div class="tools"><button class="btn ghost" data-cmp="impart">Importar artigos do PRIMAVERA</button>'):h}}
@@ -192,6 +202,7 @@ document.addEventListener('click',async e=>{const tg=e.target;
   if(a==='exppc'){const all=rows('compras').filter(c=>c.estado!=='Cancelado'),pend=all.filter(c=>!c.expPrim||(c.ne&&!c.expNE)),l=pend.length?pend:all;if(!(await xlsx('PRIMAVERA-compras-'+cod()+'-'+today()+'.xlsx',[shPC(l),shNE(l)])))return;const at=now();l.forEach(c=>{const{id:i,...d}=c;save('compras',i,{...d,expPrim:at,...(c.ne?{expNE:at}:{})})});return toast(l.length+' pedido(s) de compra exportado(s), com as notas de encomenda já emitidas.')}
   if(a==='expall'){const fs=Object.values(data.dafaturas||{}).filter(f=>f.obra===st.obra),D=window.DAFX;return xlsx('PRIMAVERA-circuito-'+cod()+'-'+today()+'.xlsx',[shReq(rows('requisicoes')),shPC(rows('compras').filter(c=>c.estado!=='Cancelado')),shNE(rows('compras').filter(c=>c.estado!=='Cancelado')),shGE(),...(D?[{name:'Faturas',head:D.PH,rows:D.primLines(fs.filter(f=>f.val.estado==='Validada'))}]:[])])}
   if(!canEdit()&&!['req','pc','printne','csvorc'].includes(a))return toast('Este perfil só pode consultar.');
+  if(a==='sendmail'){if(!/^[^@\s;]+@[^@\s;]+\.[^@\s;]+/.test((data.emails[id]||{}).para||''))return toast('O destinatário não tem um endereço de email válido. Preencha o email na ficha do fornecedor.');el.disabled=true;const ok_=await sendMail(id);return toast(ok_?'Email enviado.':'Não foi possível enviar o email.')}
   if(a==='impart')return show(form('impart:','Importar artigos do PRIMAVERA','<div class="fields">'+F('Uma linha por artigo: código ; descrição ; unidade ; família ; subfamília ; tipo de artigo ; classe de obra','<textarea name="txt" rows="10" required placeholder="MAT.0001;Cimento Portland 42,5;sacos;Materiais de construção;Ligantes;Mercadoria;Construção civil"></textarea>',1)+'</div><p class="help">Exporte a lista de artigos do PRIMAVERA para Excel e cole aqui as colunas por esta ordem (separadas por tabulação ou ponto e vírgula). Os artigos com código já existente são atualizados; os restantes são criados.</p>','Importar'),true);
   if(a==='newreq')return reqForm();
   if(a==='req')return reqCard(id);
