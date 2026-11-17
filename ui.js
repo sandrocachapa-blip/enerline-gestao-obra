@@ -93,5 +93,56 @@ document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.c
 {const o=vGeneric;vGeneric=function(c){if(c==='perfis')return vPerfis();const h=o(c);return c==='utilizadores'&&isAdm()?h.replace('<div class="tools">','<div class="tools"><a class="btn ghost" href="#perfis">Perfis e acessos</a>'):h}}
 {const o=render;render=function(){try{apply()}catch(e){console.warn(e)}const r=o.apply(this,arguments);try{const d=document.querySelector('#main .dash');if(d&&!document.querySelector('#main .dashtg')){const off=dOff();d.classList.toggle('off',off);d.insertAdjacentHTML('beforebegin',`<button type="button" class="dashtg" data-pf="dash" aria-expanded="${!off}">${off?'Mostrar resumo ▸':'Esconder resumo ▾'}</button>`)}
     if(!isAdm()){const l=document.querySelector('#nav a[data-nav="perfis"]');if(l)l.remove()}}catch(e){}return r}}
+/* ---------- seletor de obra só onde faz falta, e «Todas as obras» nas listas ---------- */
+['admpainel','admobras','admfin','admrh','admrel','perfis','ligacoes','dafval','dafguias','dafprim','dafarq','dafrel','emails'].forEach(v=>NOOB.add(v));
+const NOALL=new Set(['tarefas','ponto','rh','requisicoes','compras','orcamento','hst_']);
+allOk=v=>SC.includes(v)&&!NOALL.has(v)&&S[v]&&S[v].fields&&S[v].fields.length>0&&rows('obras').length>1;
+let allBusy=false;
+async function loadTodas(){if(allBusy||typeof db==='undefined'||!db)return;allBusy=true;toast('A carregar os registos de todas as obras…');
+  try{unsubs.forEach(u=>u());unsubs=[];st.all=true;render();
+    await Promise.all(SC.map(async c=>{if(c==='ponto')return;try{const m={};(await db.collection(c).limit(5000).get()).docs.forEach(d=>{m[d.id]=d.data()});if(st.all)data[c]=m}catch(e){}}));
+    if(st.all){render();toast('A mostrar todas as obras. Para criar ou alterar um registo, escolha a obra.')}}catch(e){toast('Não foi possível carregar todas as obras.')}allBusy=false}
+window.ENLALL=()=>{if(!allOk(st.view))return;loadTodas()};
+const sairTodas=()=>{if(!st.all)return;st.all=false;if(db)subObra()};
+{const o=vGeneric;vGeneric=function(c){if(!st.all||!allOk(c))return o(c);const s=S[c],had=s.fields.some(f=>f.k==='obra'),cols=s.cols;
+    if(!had)s.fields.push({k:'obra',l:'Obra',ref:'obras',calc:1});if(!cols.includes('obra'))s.cols=['obra',...cols];
+    try{return o(c)}finally{s.cols=cols;if(!had){const i=s.fields.findIndex(f=>f.k==='obra'&&f.calc);if(i>=0)s.fields.splice(i,1)}}}}
+{const o=render;render=function(){try{if(st.all&&!allOk(st.view))sairTodas()}catch(e){}return o.apply(this,arguments)}}
+document.addEventListener('click',e=>{if(!st.all)return;const t=e.target.closest&&e.target.closest('[data-new],[data-edit],[data-del],[data-cycle]');if(!t)return;
+  if(t.hasAttribute('data-edit')){const[c,id]=t.getAttribute('data-edit').split(':'),r=data[c]&&data[c][id];if(r&&r.obra&&data.obras[r.obra]){e.preventDefault();e.stopPropagation();const nome=data.obras[r.obra].nome;setObra(r.obra);toast('Obra «'+nome+'» escolhida. A abrir o registo…');
+      let n=0;const iv=setInterval(()=>{if(++n>40){clearInterval(iv);return}if(data[c]&&data[c][id]&&st.obra===r.obra){clearInterval(iv);try{openForm(c,id)}catch(x){}}},150);return}}
+  e.preventDefault();e.stopPropagation();toast('Em «Todas as obras» só se consulta. Escolha a obra para criar ou alterar registos.')},true);
+/* ---------- RH: um trabalhador nunca é apagado; é desativado com data e motivo e fica no histórico ---------- */
+const MOT=['Despedimento','Fim de contrato','Demissão (iniciativa do trabalhador)','Fim de obra / desmobilização','Abandono do posto','Período experimental não aprovado','Reforma','Falecimento','Outro'];
+{const s=S.trabalhadores,e=s.fields.find(f=>f.k==='estado');if(e&&!e.opts.includes('Inativo'))e.opts.push('Inativo');s.chip=s.chip||'estado';
+ if(!s.fields.some(f=>f.k==='dataSaida'))s.fields.push({k:'dataSaida',l:'Data de saída',type:'date',calc:1},{k:'motivoSaida',l:'Motivo da saída',calc:1});
+ if(!TONE.bad.includes('Inativo'))TONE.bad.push('Inativo')}
+const podeRH=()=>{const u=me();return canEdit()&&(!u||['Administrador','Administração','Diretor de obra','RH'].includes(u.perfil)||(PERF[u.perfil]&&PERF[u.perfil].custom))};
+{const o=del;del=function(c,id){if(c==='trabalhadores'){toast('Os trabalhadores não se apagam: use «Desativar trabalhador», para ficar no histórico.');return}return o.apply(this,arguments)}}
+{const o=openForm;openForm=function(c,id,custom){const r=o.apply(this,arguments);if(c!=='trabalhadores'||custom)return r;try{const fm=$('#frm'),w=id&&data.trabalhadores[id];if(!fm)return r;
+    const d=fm.querySelector('[data-del]');if(d)d.remove();const es=fm.querySelector('#f_estado'),ina=w&&w.estado==='Inativo';
+    if(es){[...es.options].forEach(op=>{if(op.value==='Inativo'&&!ina)op.remove()});if(ina){es.disabled=true;es.insertAdjacentHTML('afterend','<input type="hidden" id="f_estado_keep" name="estado" value="Inativo">')}}
+    if(w){const h=(w.hist||[]).slice().reverse(),ac=fm.querySelector('.actions');
+      const box=`<div class="rhsai">${ina?`<div class="banner" style="display:block;margin:10px 0 0"><strong>Trabalhador inativo</strong> desde ${fdate(w.dataSaida)} · motivo: <strong>${esc(w.motivoSaida||'—')}</strong>${w.obsSaida?'<br>'+esc(w.obsSaida):''}</div>`:''}
+        ${h.length?`<div style="margin-top:10px"><strong>Histórico</strong><ul style="margin:4px 0 0;padding-left:18px;font-size:14px">${h.map(x=>`<li><strong>${esc(x.acao)}</strong> · ${fdate((x.data||x.at||'').slice(0,10))}${x.motivo?' · '+esc(x.motivo):''}${x.obs?' — '+esc(x.obs):''} <span class="meta">(${esc(x.by||'')})</span></li>`).join('')}</ul></div>`:''}</div>`;
+      if(ac){ac.insertAdjacentHTML('beforebegin',box);if(podeRH())ac.insertAdjacentHTML('afterbegin',ina?`<button type="button" class="btn ghost" data-rh="reat:${id}">Reativar trabalhador</button>`:`<button type="button" class="btn danger" data-rh="sai:${id}">Desativar trabalhador</button>`)}}}catch(e){console.warn(e)}return r}}
+function saiForm(id){const w=data.trabalhadores[id];if(!w)return;const G_=window.GD;if(!G_)return;
+  G_.show(`<form data-rhf="sai:${id}"><h2 style="margin:0">Desativar trabalhador</h2><p class="meta" style="margin:4px 0 10px"><strong>${esc(w.nome)}</strong>${w.funcao?' · '+esc(w.funcao):''}${w.numPonto?' · n.º '+esc(w.numPonto):''}. O registo não é apagado: fica inativo, com o histórico de ponto, tarefas e documentos.</p>
+   <div class="fields"><label>Motivo<select name="motivo" required><option value="">Escolher…</option>${MOT.map(m=>`<option>${esc(m)}</option>`).join('')}</select></label><label>Data de saída<input type="date" name="data" required value="${today()}"></label>
+   <label class="wide">Razão / observações<textarea name="obs" rows="3" required placeholder="Descreva a razão da saída"></textarea></label></div>
+   <p class="help">Depois de desativado, deixa de poder ser escolhido para tarefas e equipas. Se tiver código no relógio de ponto, convém bloqueá-lo também no terminal.</p>
+   <div class="actions"><button type="button" class="btn ghost" data-gd="close">Cancelar</button><button class="btn danger" type="submit">Desativar</button></div></form>`)}
+function reatForm(id){const w=data.trabalhadores[id];if(!w||!window.GD)return;
+  window.GD.show(`<form data-rhf="reat:${id}"><h2 style="margin:0">Reativar trabalhador</h2><p class="meta" style="margin:4px 0 10px"><strong>${esc(w.nome)}</strong> · inativo desde ${fdate(w.dataSaida)} (${esc(w.motivoSaida||'')}).</p>
+   <div class="fields"><label>Data de reentrada<input type="date" name="data" required value="${today()}"></label><label class="wide">Observações<textarea name="obs" rows="2" placeholder="Por exemplo: novo contrato"></textarea></label></div>
+   <div class="actions"><button type="button" class="btn ghost" data-gd="close">Cancelar</button><button class="btn" type="submit">Reativar</button></div></form>`)}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-rh]');if(!b)return;e.preventDefault();e.stopPropagation();const[a,id]=b.getAttribute('data-rh').split(':');if(!podeRH())return toast('Só os RH ou a direção podem desativar trabalhadores.');if(a==='sai')saiForm(id);if(a==='reat')reatForm(id)},true);
+document.addEventListener('submit',async e=>{const fm=e.target.closest&&e.target.closest('form[data-rhf]');if(!fm)return;e.preventDefault();e.stopPropagation();const[a,id]=fm.getAttribute('data-rhf').split(':'),w=data.trabalhadores[id];if(!w||!podeRH())return;
+  const v=n=>fm.elements[n]?String(fm.elements[n].value).trim():'',by=(me()||{}).nome||'',at=new Date().toISOString().slice(0,16);
+  if(a==='sai'){if(!v('motivo')||!v('obs'))return toast('Indique o motivo e a razão da saída.');
+    await save('trabalhadores',id,{...w,estadoAntes:w.estado||'Ativo',estado:'Inativo',dataSaida:v('data'),motivoSaida:v('motivo'),obsSaida:v('obs'),hist:[...(w.hist||[]),{acao:'Desativado',data:v('data'),motivo:v('motivo'),obs:v('obs'),by,at}]});
+    window.GD.hide();try{if(window.ENL&&window.ENL.mail&&window.ENL.byPerf)window.ENL.mail(window.ENL.byPerf('RH'),'Trabalhador desativado: '+w.nome,w.nome+(w.numPonto?' (n.º '+w.numPonto+')':'')+' foi desativado em '+fdate(v('data'))+'.\nMotivo: '+v('motivo')+'\n'+v('obs')+'\n\nRegistado por '+by+'.',w.numPonto||'')}catch(x){}
+    return toast('Trabalhador desativado. Fica no histórico.')}
+  if(a==='reat'){const{dataSaida,motivoSaida,obsSaida,estadoAntes,...r}=w;await save('trabalhadores',id,{...r,estado:'Ativo',hist:[...(w.hist||[]),{acao:'Reativado',data:v('data'),obs:v('obs'),by,at}]});window.GD.hide();return toast('Trabalhador reativado.')}},true);
 window.ENLUI={apply};
 })();

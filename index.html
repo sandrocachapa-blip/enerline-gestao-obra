@@ -366,7 +366,7 @@ async function del(c,id){delete data[c][id];render();
 const lost=()=>{$('#sync').textContent='Ligação aos dados perdida. Recarregue a página.'};
 const snap=(c,after)=>s=>{const m={};s.docs.forEach(x=>{m[x.id]=JSON.parse(JSON.stringify(x.data()))});data[c]=(typeof demoBusy!=='undefined'&&demoBusy&&demoMap[c])?{...demoMap[c],...m}:m;if(after)after();else render()};
 function subObra(){unsubs.forEach(u=>u());unsubs=[];SC.forEach(c=>{data[c]={};if(st.obra)unsubs.push(db.collection(c).where('obra','==',st.obra).limit(1000).onSnapshot(snap(c),lost))})}
-function setObra(id){st.obra=id||'';st.res='';st.pw='';try{localStorage.setItem('enerline_obra_sel',st.obra)}catch(e){}if(db)subObra();render()}
+function setObra(id){st.all=false;st.obra=id||'';st.res='';st.pw='';try{localStorage.setItem('enerline_obra_sel',st.obra)}catch(e){}if(db)subObra();render()}
 async function bulk(jobs,label){let done=0,err=0;const t=$('#toast'),N=150; /* 150 gravações de cada vez seguem num único pedido */
   for(let i=0;i<jobs.length;i+=N){const part=jobs.slice(i,i+N);let rs=await Promise.allSettled(part.map(j=>j())),bad=part.filter((_,k)=>rs[k].status==='rejected');
     for(let a=0;bad.length&&a<3;a++){await new Promise(r=>setTimeout(r,1500*(a+1)));rs=await Promise.allSettled(bad.map(j=>j()));bad=bad.filter((_,k)=>rs[k].status==='rejected')}
@@ -443,7 +443,9 @@ const pwForm=id=>{const u=data.utilizadores[id];if(!u)return '';return `<form cl
 const okView=v=>{if(v==='utilizadores')return perf()===PERF['Administrador'];const p=perf();return p.v==='*'||v==='hoje'||p.v.includes(v)};
 const canEdit=()=>perf().edit!==false;
 const obraOk=id=>{const u=me();return !u||!u.obras||!u.obras.length||u.obras.includes(id)};
-const rows0=c=>Object.entries(data[c]).filter(([id,o])=>c==='obras'?obraOk(id):(c==='config'||c==='rubricas'||GL.includes(c)||o.obra===st.obra)).map(([id,o])=>({id,...o,...(CALC[c]?CALC[c](o):{})}));
+/* vistas que não dependem da obra escolhida (o seletor de obra não aparece) e vistas que aceitam «Todas as obras» */
+const NOOB=new Set(['utilizadores']),YESOB=new Set(['dafaturas']);const obraView=v=>YESOB.has(v)||!(GL.includes(v)||NOOB.has(v));let allOk=v=>false;
+const rows0=c=>Object.entries(data[c]).filter(([id,o])=>c==='obras'?obraOk(id):(c==='config'||c==='rubricas'||GL.includes(c)||o.obra===st.obra||(st.all&&obraOk(o.obra)))).map(([id,o])=>({id,...o,...(CALC[c]?CALC[c](o):{})}));
 const rows=c=>{let l=rows0(c);if(c==='combustivel')consumo(l);return l.sort(S[c].sort||(()=>0))};
 const fld=(c,k)=>S[c].fields.find(f=>f.k===k);
 
@@ -838,9 +840,9 @@ function render(){GO={};gn=0;
   const cur=data.obras[st.obra],q=$('#q')?$('#q').value:'';
   if(!cur)st.view='hoje';
   const body=st.view==='hoje'?vHoje():st.view==='tarefas'?vTarefas():st.view==='ponto'?vPonto():st.view==='plano'?vPlano():st.view==='mapa'?vMapa():st.view==='rh'?vRh():st.view==='biometria'?vBio():vGeneric(st.view);
-  const bar=cur&&st.view!=='hoje'&&st.view!=='mapa'&&st.view!=='biometria'?`<label class="obar">Obra <select id="obrasel">${rows('obras').map(o=>`<option value="${o.id}"${o.id===st.obra?' selected':''}>${esc(o.nome)}</option>`).join('')}</select></label>`:'';
+  const bar=cur&&st.view!=='hoje'&&st.view!=='mapa'&&st.view!=='biometria'&&obraView(st.view)?`<label class="obar">Obra <select id="obrasel">${allOk(st.view)?`<option value="*"${st.all?' selected':''}>Todas as obras</option>`:''}${rows('obras').map(o=>`<option value="${o.id}"${!st.all&&o.id===st.obra?' selected':''}>${esc(o.nome)}</option>`).join('')}</select></label>`:'';
   const nb=st.view==='biometria';
-  $('#main').innerHTML=(cur&&cur.exemplo&&!nb?`<div class="banner"><span>Esta obra é de demonstração: trabalhadores, tarefas, picagens e pedidos são simulados.</span><button class="btn" data-danger data-delobra="1">Apagar esta obra</button></div>`:'')+bar+body;
+  $('#main').innerHTML=(cur&&cur.exemplo&&!nb&&st.view==='hoje'?`<div class="banner"><span>Esta obra é de demonstração: trabalhadores, tarefas, picagens e pedidos são simulados.</span><button class="btn" data-danger data-delobra="1">Apagar esta obra</button></div>`:'')+bar+body;
   const vh=$('#main .vh');if(vh&&DASH[st.view]&&cur||(vh&&DASH[st.view]&&GL.includes(st.view)))vh.insertAdjacentHTML('afterend',DASH[st.view]());
   const bf=$('#bio');if(bf&&!bf.getAttribute('src')){const pm={'Administrador':'admin','Diretor de obra':'admin','RH':'rh'}[(me()||{}).perfil];bf.src='sp.html'+(pm?'?perfil='+pm+(st.bioTab?'&tab='+st.bioTab:''):'');st.bioTab=''}
   if(q&&$('#q')){$('#q').value=q;filter()}
@@ -1164,7 +1166,7 @@ document.addEventListener('pointerup',()=>{if(drag&&drag.moved){st.dragged=true;
 document.addEventListener('input',e=>{if(e.target.id==='q')filter();
   const k=e.target.getAttribute&&e.target.getAttribute('data-ckq');if(k){const q=e.target.value.toLowerCase();document.querySelectorAll('#'+k+' label').forEach(l=>{l.hidden=!!q&&!l.textContent.toLowerCase().includes(q)})}});
 document.addEventListener('change',e=>{if(e.target.id==='f_foto_file'&&e.target.files[0]){const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),k=$('#fprev').classList.contains('v')?[128,84]:[96,96];c.width=k[0];c.height=k[1];const x=c.getContext('2d'),r=Math.max(k[0]/im.width,k[1]/im.height),w=im.width*r,h=im.height*r;x.drawImage(im,(k[0]-w)/2,(k[1]-h)/2,w,h);const u=c.toDataURL('image/jpeg',.72);$('#f_foto').value=u;$('#fprev').src=u};im.src=fr.result};fr.readAsDataURL(e.target.files[0]);return}
-  if(e.target.id==='obrasel'){setObra(e.target.value);return}
+  if(e.target.id==='obrasel'){if(e.target.value==='*'&&window.ENLALL){window.ENLALL();return}setObra(e.target.value);return}
   if(e.target.dataset&&e.target.dataset.rhf){st.rhF[e.target.dataset.rhf]=e.target.value;render();return}
   if(e.target.dataset&&e.target.dataset.rhs){st.rhSort=e.target.value;render();return}if(e.target.id==='pwsel'){st.pw=e.target.value;render();return}if(e.target.id==='ressel'){st.res=e.target.value;render();return}if(e.target.id==='dayin'&&e.target.value){st.day=e.target.value;render()}});
 $('#pfile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
