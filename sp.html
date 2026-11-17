@@ -1159,8 +1159,17 @@ const UI = (() => {
       <div class="field"><label>Locais autorizados</label>${S.locations.map(l => `<label class="row"><input type="checkbox" class="wLoc" value="${l.id}" ${(w.locations || []).includes(l.id) ? 'checked' : ''} style="width:auto"> ${h(l.name)}</label>`).join('')}</div>
       <div class="field"><label>Estado</label><label class="switch"><input type="checkbox" id="wActive" ${w.active ? 'checked' : ''}><i></i><span>Ativo</span></label><div class="muted small mt">Desativar impede novas marcações e preserva o histórico de assiduidade (Passo 5).</div></div>
     </div>
-    <div class="card mb"><div class="row between"><div class="row"><span id="wPhotoPrev">${avatar(w, 'av big')}</span><div><h3>Fotografia</h3><div class="muted small">Captada automaticamente no registo facial, ou carregue um ficheiro.</div><label class="row mt" style="gap:6px"><input type="file" accept="image/*" onchange="UI.photoForForm(this)" style="width:auto"></label></div></div></div></div>
+    <div class="card mb"><div class="row between"><div class="row"><span id="wPhotoPrev">${avatar(w, 'av big')}</span><div><h3>Fotografia</h3><div class="muted small">Captada automaticamente no registo facial, ou carregue um ficheiro.</div><label class="row mt" style="gap:6px"><input type="file" accept="image/*" onchange="UI.photoForForm(this)" style="width:auto"></label></div></div>${id ? `<button class="danger" onclick="UI.removePhoto('${id}')" title="Apaga a fotografia, o registo facial e as imagens das marcações deste trabalhador">Remover fotografia e imagens</button>` : ''}</div></div>
     <div class="card mb"><div class="row between"><div><h3>Registo facial</h3><div class="muted small" id="wFaceBox">${faceStatusText(w)}</div></div><button onclick="UI.captureFaceForForm()">🙂 ${w.biometrics && w.biometrics.face && w.biometrics.face.enrolled ? 'Recadastrar rosto' : 'Registar rosto'} (2 leituras)</button></div></div><div class="row" style="justify-content:flex-end"><button onclick="UI.closeModal()">Cancelar</button><button class="primary" onclick="UI.saveWorker('${id || ''}')">Guardar</button></div>`);
+  }
+  /* apaga a fotografia, os modelos biométricos e as imagens captadas nas marcações de um trabalhador (as marcações ficam) */
+  function removePhoto(id) { const w = S.workers.find(x => x.id === id); if (!w) return;
+    const n = S.events.filter(x => x.workerId === id && x.capture).length;
+    if (!window.confirm('Remover a fotografia de ' + w.name + ', o registo facial e as ' + n + ' imagens captadas nas marcações? As marcações ficam, sem imagem. Não é possível desfazer.')) return;
+    delete w.photo; pendingPhoto = null; pendingFace = null; w.biometrics = { face: { enrolled: false }, finger: { enrolled: false } }; delete templateCache[w.id];
+    S.events.forEach(x => { if (x.workerId === id && x.capture) { x.capture = null; x.captureRemoved = true; } });
+    SP.audit(S, { user: user.name, role: user.role, action: 'REMOVER_FOTOGRAFIA', ref: w.id, decision: 'OK', reason: 'fotografia, modelos biométricos e ' + n + ' imagens de marcações removidos' });
+    save(); closeModal(); render(); toast('Fotografia e imagens de ' + w.name + ' removidas');
   }
   function saveWorker(id) {
     const code = $('#wCode').value.trim(), name = $('#wName').value.trim(); if (!code || !name) return toast('Código e nome são obrigatórios');
@@ -1854,7 +1863,7 @@ const UI = (() => {
      window.addEventListener('online', () => syncNow()); window.addEventListener('online', () => { const e = $('#tOnline'); if (e) { e.checked = true; tOnlineChange(); } }); window.addEventListener('offline', () => { const e = $('#tOnline'); if (e) { e.checked = false; tOnlineChange(); } }); }
   document.addEventListener('DOMContentLoaded', init);
 
-  return { login, logout, go, resetDemo, filt, rfilt, showEvent, review, unblock, decideCorrection, newCorrection, saveCorrection, editWorker, saveWorker, enroll, doEnroll, unenroll, editLocation, saveLocation, editDevice, saveDevice, revoke, editShift, saveShift, addHoliday, delHoliday, savePolicy, exportExcel, exportEvents, runTests, exportTests, closeModal, closeModal2, captureFaceForForm, photoForForm, showServer, saveServer, syncNow: () => syncNow(), camRetry, gpsCheck: () => gpsCheck(false), registoBoot, registoSave, regMethod: regMethodSet, regGps: regGpsCheck,
+  return { login, logout, go, resetDemo, filt, rfilt, showEvent, review, unblock, decideCorrection, newCorrection, saveCorrection, editWorker, saveWorker, removePhoto, enroll, doEnroll, unenroll, editLocation, saveLocation, editDevice, saveDevice, revoke, editShift, saveShift, addHoliday, delHoliday, savePolicy, exportExcel, exportEvents, runTests, exportTests, closeModal, closeModal2, captureFaceForForm, photoForForm, showServer, saveServer, syncNow: () => syncNow(), camRetry, gpsCheck: () => gpsCheck(false), registoBoot, registoSave, regMethod: regMethodSet, regGps: regGpsCheck,
     showLogin, tConfirmNow, openTerminal, terminalAdminExit, tOnlineChange, tHome, tStep, tAction, tSetAction, tSearch, tSelectWorker, tIdentify, tScanQR, tMethod, tCapture, fpEnroll, acquireGps, tSubmit, syncNow };
 })();
 
