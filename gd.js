@@ -24,6 +24,7 @@ const css=document.createElement('style');css.textContent=`
 .gdsteps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}.gdsteps li::marker{color:var(--brand-ink);font-weight:700}
 .gdmx td,.gdmx th{text-align:center}.gdmx td:first-child,.gdmx th:first-child{text-align:left}.gdmx input{width:20px;height:20px;cursor:pointer}
 .gdth{display:flex;gap:8px;flex-wrap:wrap}.gdth img{width:84px;height:84px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer}
+.gdpv{overflow:auto;padding:8px;background:#e9ebe6!important}
 .gdpdf{width:100%;height:min(72vh,900px);border:1px solid var(--line);border-radius:6px;background:#fff}
 dialog.gdwide{max-width:min(980px,calc(100% - 24px))}
 .gdsync{position:fixed;left:12px;bottom:12px;z-index:8;background:var(--warn-bg,#fdeccb);color:var(--warn,#8a5a00);border-radius:99px;padding:6px 14px;font-size:14px;font-weight:600;box-shadow:0 2px 10px #0003}
@@ -88,12 +89,21 @@ async function syncFiles(force){if(syncing||!db||!st.obra||!st.user)return;const
   const cur=L('gdocs'),keep=new Set(cur.flatMap(d=>[inForce(d)&&d.ifc.file.id,isGD()&&d.file&&d.file.id]).filter(Boolean));syncing=true;let ch=false;
   try{ /* a revisão anterior é removida do dispositivo assim que deixa de estar em vigor */
     if(cur.length){const all=await fdb.keys()||[];for(const k of all){if(keep.has(k))continue;const r=await fdb.get(k);if(r&&r.obra===st.obra){await fdb.del(k);cached.delete(k);ch=true}}}
+    if(auto&&!(window.enlSync||{}).offline)loadPdf().catch(()=>{});
     if(auto&&!(window.enlSync||{}).offline)for(const d of ifcDocs()){const f=d.ifc.file;if(f&&!cached.has(f.id)){try{await blobOf(f);ch=true}catch(e){}}}
   }finally{syncing=false}if(ch&&/^gd/.test(st.view)&&!dlgEl().open)render()}
 setInterval(()=>syncFiles(),30000);
+/* pré-visualização: as páginas do PDF são desenhadas pela própria aplicação (funciona em qualquer navegador e tablet) */
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';let pdfLib=null;
+function loadPdf(){return pdfLib||(pdfLib=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=PDFJS+'pdf.min.js';sc.onload=async()=>{try{const L=window.pdfjsLib;const w=await (await fetch(PDFJS+'pdf.worker.min.js')).text();L.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([w],{type:'text/javascript'}));res(L)}catch(e){rej(e)}};sc.onerror=rej;document.head.appendChild(sc)}).catch(e=>{pdfLib=null;throw e}))}
+async function preview(blob,box){const L=await loadPdf(),pdf=await L.getDocument({data:await blob.arrayBuffer()}).promise,n=Math.min(pdf.numPages,40),W=Math.max(300,box.clientWidth-18),dpr=Math.min(2,window.devicePixelRatio||1);
+  box.innerHTML='';
+  for(let i=1;i<=n;i++){if(!box.isConnected)return;const pg=await pdf.getPage(i),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:W/v0.width*dpr}),c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;c.style.cssText='width:100%;height:auto;display:block;background:#fff;box-shadow:0 1px 6px #0003;margin:0 0 10px';box.appendChild(c);await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise}
+  if(pdf.numPages>n){const m=document.createElement('p');m.className='meta';m.textContent='A pré-visualização mostra as primeiras '+n+' de '+pdf.numPages+' páginas. Use «Abrir em ecrã inteiro» para ver todas.';box.appendChild(m)}}
 async function openDoc(f,title,sub){show(`<form><h2 style="margin:0">${esc(title)}</h2><p class="meta" style="margin:0">${sub||''}</p><div id="gdv" class="empty">A abrir o documento…</div><div class="actions"><button type="button" class="btn ghost" data-gd="close">Fechar</button></div></form>`,true);
   try{const b=await blobOf(f);if(curUrl)URL.revokeObjectURL(curUrl);curUrl=URL.createObjectURL(b);const v=$('#gdv');if(!v)return;v.className='';
-    v.innerHTML=`<div class="gdrow" style="margin-bottom:8px"><a class="btn" href="${curUrl}" target="_blank" rel="noopener">Abrir em ecrã inteiro</a><a class="btn ghost" href="${curUrl}" download="${esc(f.name)}">Descarregar</a><span class="meta">${esc(f.name)} · ${kb(f.size)}</span></div><iframe class="gdpdf" title="Documento" src="${curUrl}"></iframe>`}
+    v.innerHTML=`<div class="gdrow" style="margin-bottom:8px"><a class="btn" href="${curUrl}" target="_blank" rel="noopener">Abrir em ecrã inteiro</a><a class="btn ghost" href="${curUrl}" download="${esc(f.name)}">Descarregar</a><span class="meta">${esc(f.name)} · ${kb(f.size)}</span></div><div class="gdpdf gdpv" id="gdpv"><div class="empty">A preparar a pré-visualização…</div></div>`;
+    const box=$('#gdpv');try{await preview(b,box)}catch(x){if(box&&box.isConnected)box.outerHTML=`<iframe class="gdpdf" title="Documento" src="${curUrl}"></iframe>`}}
   catch(e){const v=$('#gdv');if(v)v.textContent='Não foi possível abrir: sem internet e este documento ainda não estava guardado neste dispositivo.'}}
 
 /* ---------- vistas ---------- */
