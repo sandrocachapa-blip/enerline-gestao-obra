@@ -42,7 +42,8 @@ button.ng[data-ng="Administração"]{background:linear-gradient(90deg,#1c2226,#3
 .admt{width:100%;border-collapse:collapse;font-size:13px}.admt th{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap}.admt td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle}.admt .n{text-align:right;white-space:nowrap}.admt tr.click{cursor:pointer}
 .admp{display:block;height:8px;background:var(--neu-bg);border-radius:4px;position:relative;min-width:70px}.admp i{display:block;height:8px;border-radius:4px;background:var(--brand)}.admp u{position:absolute;top:-3px;width:2px;height:14px;background:var(--ink)}
 .admdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}.admdot.ok{background:var(--brand)}.admdot.warn{background:#c08a1e}.admdot.bad{background:var(--bad)}
-.admal{display:flex;flex-direction:column;gap:0}.admal>div{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}.admal>div:last-child{border-bottom:0}`;(document.body||document.head).appendChild(css);
+.admal{display:flex;flex-direction:column;gap:0}.admal>div{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}.admal>div:last-child{border-bottom:0}
+.admc{overflow-x:auto}@media(max-width:700px){.admk{grid-template-columns:repeat(2,minmax(0,1fr))}.admk b{white-space:normal;font-size:17px;overflow-wrap:anywhere}.admt{font-size:12px}}`;(document.body||document.head).appendChild(css);
 /* ---------- dados de todas as obras ---------- */
 const CX=['trabalhadores','equipamentos','compras','progresso','combustivel','subempreiteiros','qsainc','qsanc','logimp','hst'];
 let ALL=null,busy=false,at=0;
