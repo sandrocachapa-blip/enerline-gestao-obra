@@ -177,6 +177,8 @@ tr.grp.ob td{background:var(--neu-bg);font-size:16px}
   .ng:first-child{margin-left:0}
   main{padding-top:16px!important}
 }
+button.ng{display:flex;width:100%;border:0;cursor:pointer;justify-content:space-between;align-items:center;gap:8px;text-align:left}button.ng i{font-style:normal;font-size:15px;opacity:.9}button.ng.off{filter:saturate(.55) brightness(.9)}button.ng:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media (max-width:820px){button.ng,button.ng:first-child{display:inline-flex;width:auto}}
 .dash{margin:0 0 20px;display:flex;flex-direction:column;gap:14px}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
 .dcard{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px}
@@ -435,6 +437,7 @@ const CALC={stock:r=>({situacao:+r.qtd<=0?'Sem stock':+r.qtd<+r.minimo?'Abaixo d
 function consumo(list){const by={};list.forEach(r=>(by[r.viatura]=by[r.viatura]||[]).push(r));
   Object.values(by).forEach(a=>{a.sort((x,y)=>(x.km||0)-(y.km||0));a.forEach((r,i)=>{const p=a[i-1],d=p?(r.km||0)-(p.km||0):0;r.percorrido=d>0?fk(d)+' km':'—';r.kmd=d>0?d:0;r.l100=d>0?(+r.litros||0)/d*100:null;r.media=r.l100!=null?r.l100.toFixed(1).replace('.',',')+' L/100 km':'—'})});return list}
 const me=()=>st.user&&data.utilizadores[st.user];
+const navOff=()=>{try{const a=JSON.parse(localStorage.getItem('enerline_nav_off')||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
 const perf=()=>{const u=me();return PERF[u?u.perfil:'Administrador']||PERF['Consulta (só leitura)']};
 const pwForm=id=>{const u=data.utilizadores[id];if(!u)return '';return `<form class="pwf" data-pwd="${id}"><strong>${esc(u.nome)}</strong><span class="meta">${esc(u.perfil)}</span><input type="text" name="enl_pw_x" placeholder="Palavra-passe" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore style="-webkit-text-security:disc" autofocus>${st.perr?'<em class="perr">Palavra-passe errada</em>':''}<span><button class="btn" type="submit">Entrar</button> <button class="btn ghost" type="button" data-pick="">Cancelar</button></span></form>`};
 const okView=v=>{if(v==='utilizadores')return perf()===PERF['Administrador'];const p=perf();return p.v==='*'||v==='hoje'||p.v.includes(v)};
@@ -829,7 +832,7 @@ function render(){GO={};gn=0;
   if(st.user&&data.obras[st.obra]&&!obraOk(st.obra)){const f=rows('obras')[0];if(f){setObra(f.id);return}}
   {let last='',gi=-1;const gs=VIEWS.filter(x=>x[2]).map(x=>x[2]);let cur_='';
    const nvs=$('#nav').scrollLeft;setTimeout(()=>{const n=$('#nav'),on=n.querySelector('a.on');n.scrollLeft=nvs;if(on&&n.scrollWidth>n.clientWidth&&(on.offsetLeft<n.scrollLeft+n.offsetLeft||on.offsetLeft+on.offsetWidth>n.scrollLeft+n.offsetLeft+n.clientWidth))n.scrollLeft=Math.max(0,on.offsetLeft-n.offsetLeft-40)},0);
-   $('#nav').innerHTML=VIEWS.map(v=>{if(v[2])cur_=v[2];if(!okView(v[0]))return '';let h='';if(cur_!==last){last=cur_;h=`<span class="ng g${gs.indexOf(cur_)}">${cur_}</span>`}return h+`<a href="#${v[0]}" data-nav="${v[0]}" class="${st.view===v[0]?'on':''}">${v[1]}</a>`}).join('')}
+   $('#nav').innerHTML=VIEWS.map(v=>{if(v[2])cur_=v[2];if(!okView(v[0]))return '';let h='';const fe=navOff().includes(cur_);if(cur_!==last){last=cur_;const tem=VIEWS.some((x,i)=>{let g='';for(let j=i;j>=0;j--)if(VIEWS[j][2]){g=VIEWS[j][2];break}return g===cur_&&x[0]===st.view});h=`<button type="button" class="ng g${gs.indexOf(cur_)}${fe?' off':''}" data-ng="${esc(cur_)}" aria-expanded="${!fe}" title="${fe?'Abrir':'Encolher'} este menu"><span>${cur_}${fe&&tem?' •':''}</span><i aria-hidden="true">${fe?'▸':'▾'}</i></button>`}return h+(fe?'':`<a href="#${v[0]}" data-nav="${v[0]}" class="${st.view===v[0]?'on':''}">${v[1]}</a>`)}).join('')}
   const um=me();$('#ubox').innerHTML=um?`<img class="av" alt="" src="${um.foto||avW({id:st.user,nome:um.nome,funcao:um.cargo})}"><span><strong>${esc(um.nome)}</strong><br><span class="meta">${esc(um.perfil)}</span></span><button class="btn ghost" data-umenu="1">Trocar utilizador ▾</button>${st.umenu?`<div class="umenu">${st.pend?pwForm(st.pend):''}${rows('utilizadores').filter(x=>x.estado!=='Inativo').map(x=>`<button data-pick="${x.id}" class="${x.id===st.user?'on':''}"><img class="av" alt="" src="${x.foto||avW({id:x.id,nome:x.nome,funcao:x.cargo})}"><span><strong>${esc(x.nome)}</strong><br><small>${esc(x.perfil)}${x.obras&&x.obras.length?' · '+x.obras.length+' obra'+(x.obras.length>1?'s':''):' · todas as obras'}</small></span></button>`).join('')}</div>`:''}`:'';
   if(st.view==='biometria'&&$('#bio'))return;
   const cur=data.obras[st.obra],q=$('#q')?$('#q').value:'';
@@ -1129,6 +1132,7 @@ document.addEventListener('click',async e=>{
   if((v=g('data-go'))){e.preventDefault();const o=GO[v];if(!o)return;st.gf=o.pred?{c:o.view,pred:o.pred,label:o.label}:null;st.view=o.view;if(o.day)st.day=o.day;if(o.pv)st.pv=o.pv;try{history.replaceState(null,'','#'+o.view)}catch(x){}render();try{window.scrollTo(0,0);const m=document.querySelector('main');if(m)m.scrollTop=0}catch(x){}return}
   if(g('data-gfclear')){st.gf=null;render();return}
   if((v=g('data-photos'))){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.multiple=true;inp.onchange=()=>importPhotos(v,[...inp.files]);inp.click();return}
+  if((v=g('data-ng'))){const o=navOff(),i=o.indexOf(v);i<0?o.push(v):o.splice(i,1);try{localStorage.setItem('enerline_nav_off',JSON.stringify(o))}catch(x){}render();return}
   if((v=g('data-nav'))){e.preventDefault();st.gf=null;st.view=v;try{history.replaceState(null,'','#'+v)}catch(x){}render();try{window.scrollTo(0,0);const m=document.querySelector('main');if(m)m.scrollTop=0}catch(x){}return}
   if((v=g('data-new'))){openForm(v);return}
   if((v=g('data-res'))){e.preventDefault();if($('#dlg').open)$('#dlg').close();st.res=v;st.view='plano';try{history.replaceState(null,'','#plano')}catch(x){}render();const s=$('#ressel');if(s)s.scrollIntoView({block:'start'});return}
